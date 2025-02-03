@@ -1,0 +1,6 @@
+x64/
+.vs/
+imgui.ini
+*.glb
+*.obj
+*.mtl

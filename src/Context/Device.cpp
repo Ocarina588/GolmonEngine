@@ -1,0 +1,125 @@
+#include <unordered_set>
+#include "GolmonRenderer.hpp"
+
+using Vk = gr::Context;
+
+gr::Device::Device(void)
+{
+
+}
+
+gr::Device::~Device(void)
+{
+	vkDestroyDevice(ptr, nullptr);
+}
+
+void gr::Device::init(void)
+{
+	VkDeviceCreateInfo create_info{ VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
+	uint32_t count = 0;
+
+	vkEnumeratePhysicalDevices(Vk::instance, &count, nullptr);
+	std::vector<VkPhysicalDevice> physical_devices(count);
+	vkEnumeratePhysicalDevices(Vk::instance, &count, physical_devices.data());
+
+	if (_gpu > count)
+		throw std::runtime_error("chosen gpu index out of bound");
+
+	physical_ptr = physical_devices[_gpu]; 
+
+	get_info(); 
+
+	auto queue_infos = choose_queues();
+
+	create_info.enabledExtensionCount = static_cast<uint32_t>(_extensions.size()); 
+	create_info.ppEnabledExtensionNames = _extensions.data();
+	create_info.queueCreateInfoCount = static_cast<uint32_t>(queue_infos.size());
+	create_info.pQueueCreateInfos = queue_infos.data();
+
+	if (vkCreateDevice(physical_ptr, &create_info, nullptr, &ptr) != VK_SUCCESS)
+		throw std::runtime_error("failed to create device");
+
+	vkGetDeviceQueue(ptr, index.graphics, 0, &queue.graphics);
+	vkGetDeviceQueue(ptr, index.compute, 0, &queue.compute);
+	vkGetDeviceQueue(ptr, index.transfer, 0, &queue.transfer);
+	if (Vk::window.ptr)
+		vkGetDeviceQueue(ptr, index.present, 0, &queue.present);
+
+	dump();
+
+}
+
+void gr::Device::get_info(void)
+{
+	uint32_t count = 0;
+
+	vkGetPhysicalDeviceProperties(physical_ptr, &properties);
+	vkGetPhysicalDeviceFeatures(physical_ptr, &features);
+
+	vkGetPhysicalDeviceQueueFamilyProperties(physical_ptr, &count, nullptr);
+	family_properties.resize(count);
+	vkGetPhysicalDeviceQueueFamilyProperties(physical_ptr, &count, family_properties.data());
+
+	if (Vk::window.ptr == nullptr) return;
+
+	if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_ptr, Vk::window.surface, &Vk::window.capabilites) != VK_SUCCESS)
+		throw std::runtime_error("failed to get surface capabilites");
+	vkGetPhysicalDeviceSurfaceFormatsKHR(physical_ptr, Vk::window.surface, &count, nullptr);
+	Vk::window.formats.resize(count);
+	vkGetPhysicalDeviceSurfaceFormatsKHR(physical_ptr, Vk::window.surface, &count, Vk::window.formats.data());
+}
+
+std::vector<VkDeviceQueueCreateInfo> gr::Device::choose_queues(void)
+{
+	for (uint32_t i = 0; i < family_properties.size(); i++) {
+		if (index.graphics == ~(0u) && family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+			index.graphics = i;
+		if (index.compute == ~(0u) && family_properties[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
+			index.compute = i;
+		if (index.transfer == ~(0u) && family_properties[i].queueFlags & VK_QUEUE_TRANSFER_BIT)
+			index.transfer = i;
+
+		if (Vk::window.ptr == nullptr) continue;
+
+		VkBool32 support = false;
+		if (vkGetPhysicalDeviceSurfaceSupportKHR(physical_ptr, i, Vk::window.surface, &support) != VK_SUCCESS)
+			throw std::runtime_error("failed to get surface support");
+		if (index.present == ~(0u) && support)
+			index.present = i;
+	}
+
+	std::unordered_set<uint32_t> s = {
+		index.graphics, index.compute, index.transfer
+	};
+	if (Vk::window.ptr)
+		s.insert(index.present);
+
+	std::vector<VkDeviceQueueCreateInfo> create_infos;
+	float priority = 1.f;
+
+	for (auto& i : s) {
+		create_infos.push_back({
+			.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+			.queueFamilyIndex = i,
+			.queueCount = 1,
+			.pQueuePriorities = &priority
+		});
+	}
+
+	return create_infos;
+}
+
+void gr::Device::dump(void)
+{
+	std::cout << TERMINAL_COLOR_YELLOW;
+	std::cout << "Device extensions:" << std::endl;
+	
+	std::cout << TERMINAL_COLOR_GREEN;
+	for (auto& e : _extensions)
+		std::cout << TAB << e << std::endl;
+
+	std::cout << TERMINAL_COLOR_CYAN;
+	std::cout << "Device creation SUCCESS [" << TERMINAL_COLOR_MAGENTA << std::string(properties.deviceName);
+	std::cout << TERMINAL_COLOR_CYAN << "]" << std::endl;
+	std::cout << TERMINAL_COLOR_RESET;
+}

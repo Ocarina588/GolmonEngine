@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35222.181
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GolmonRenderer", "GolmonRenderer.vcxproj", "{1FC1D29E-5D27-454E-A376-1CDB84CCF12C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1FC1D29E-5D27-454E-A376-1CDB84CCF12C}.Debug|x64.ActiveCfg = Debug|x64
+		{1FC1D29E-5D27-454E-A376-1CDB84CCF12C}.Debug|x64.Build.0 = Debug|x64
+		{1FC1D29E-5D27-454E-A376-1CDB84CCF12C}.Debug|x86.ActiveCfg = Debug|Win32
+		{1FC1D29E-5D27-454E-A376-1CDB84CCF12C}.Debug|x86.Build.0 = Debug|Win32
+		{1FC1D29E-5D27-454E-A376-1CDB84CCF12C}.Release|x64.ActiveCfg = Release|x64
+		{1FC1D29E-5D27-454E-A376-1CDB84CCF12C}.Release|x64.Build.0 = Release|x64
+		{1FC1D29E-5D27-454E-A376-1CDB84CCF12C}.Release|x86.ActiveCfg = Release|Win32
+		{1FC1D29E-5D27-454E-A376-1CDB84CCF12C}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6D7FA73B-4139-4E5F-A0C2-90C2CB5DCA67}
+	EndGlobalSection
+EndGlobal
