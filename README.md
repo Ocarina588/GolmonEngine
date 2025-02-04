@@ -3,7 +3,7 @@ The purpose of this project is to create a __Vulkan__ Renderer in __C++__ withou
 
 ### Hello Triangle example (without vertex buffer)
 
-The vertices information is hard-coded in the vertex shader.
+The vertices information are hard-coded in the vertex shader.
 
 
 ```c++
