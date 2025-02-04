@@ -1,48 +1,55 @@
 #include "GolmonRenderer.hpp"
+#include "Context/Context.hpp"
 
-gr::Instance gr::Context::instance;
-gr::Device gr::Context::device;
-gr::Window gr::Context::window;
+gr::Instance gr::ctx::instance;
+gr::Device gr::ctx::device;
+gr::Window gr::ctx::window;
 
-using Vk = gr::Context;
+using Vk = gr::ctx;
 
-void gr::Context::use_debug(void)
+void gr::ctx::use_debug(void)
 {
+#ifdef _DEBUG
 	Vk::instance._debug = true;
+#endif
 }
 
-void gr::Context::use_window(int w, int h, char const* t)
+void gr::ctx::set_extent(uint32_t w, uint32_t h)
 {
-	Vk::window.init(w, h, t);
+	Vk::device.extent = { w, h };
 }
 
-void gr::Context::add_layer(char const* l)
+void gr::ctx::use_window(char const* t)
+{
+	Vk::window.init(static_cast<int>(Vk::device.extent.width), static_cast<int>(Vk::device.extent.height), t);
+}
+
+void gr::ctx::add_layer(char const* l)
 {
 	Vk::instance._layers.push_back(l);
 }
 
-void gr::Context::add_instance_extension(char const* e)
+void gr::ctx::add_instance_extension(char const* e)
 {
 	Vk::instance._extensions.push_back(e);
 }
 
-void gr::Context::add_device_extension(char const* e)
+void gr::ctx::add_device_extension(char const* e)
 {
 	Vk::device._extensions.push_back(e);
 }
 
-void gr::Context::use_gpu(uint32_t index)
+void gr::ctx::use_gpu(uint32_t index)
 {
 	Vk::device._gpu = index;
 }
 
-void gr::Context::init(void)
+void gr::ctx::init(void)
 {
 	if (window.ptr) {
 		for (auto e : window.get_required_extensions())
 			instance._extensions.push_back(e);
 		device._extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-
 	}
 
 	if (instance._debug) {

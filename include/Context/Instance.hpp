@@ -5,7 +5,7 @@
 namespace gr {
 
 	class Instance {
-		friend class Context;
+		friend class ctx;
 		friend class Window;
 	public:
 		Instance(void);

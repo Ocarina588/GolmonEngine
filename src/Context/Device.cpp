@@ -1,7 +1,7 @@
 #include <unordered_set>
 #include "GolmonRenderer.hpp"
 
-using Vk = gr::Context;
+using Vk = gr::ctx;
 
 gr::Device::Device(void)
 {
@@ -55,6 +55,7 @@ void gr::Device::get_info(void)
 
 	vkGetPhysicalDeviceProperties(physical_ptr, &properties);
 	vkGetPhysicalDeviceFeatures(physical_ptr, &features);
+	vkGetPhysicalDeviceMemoryProperties(physical_ptr, &memory_properties);
 
 	vkGetPhysicalDeviceQueueFamilyProperties(physical_ptr, &count, nullptr);
 	family_properties.resize(count);
@@ -122,4 +123,38 @@ void gr::Device::dump(void)
 	std::cout << "Device creation SUCCESS [" << TERMINAL_COLOR_MAGENTA << std::string(properties.deviceName);
 	std::cout << TERMINAL_COLOR_CYAN << "]" << std::endl;
 	std::cout << TERMINAL_COLOR_RESET;
+}
+
+// FUNCTIONS 
+
+uint32_t gr::find_memory_type(uint32_t type_filter, VkMemoryPropertyFlags properties)
+{
+	auto const &m = ctx::device.memory_properties;
+
+	for (uint32_t i = 0; i < m.memoryTypeCount; i++) {
+		if ((type_filter & (1 << i)) && ((m.memoryTypes[i].propertyFlags & properties) == properties))
+			return i;
+	}
+
+	throw std::runtime_error("no memory type");
+	return 0;
+}
+
+VkMemoryRequirements gr::get_memory_requirements(VkImage image)
+{
+	VkMemoryRequirements r;
+	vkGetImageMemoryRequirements(ctx::device, image, &r);
+	return r;
+}
+
+VkMemoryRequirements gr::get_memory_requirements(VkBuffer buffer)
+{
+	VkMemoryRequirements r;
+	vkGetBufferMemoryRequirements(ctx::device, buffer, &r);
+	return r;
+}
+
+void gr::wait_idle(void)
+{
+	vkDeviceWaitIdle(gr::ctx::device);
 }

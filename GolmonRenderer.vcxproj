@@ -135,15 +135,28 @@
     <ClCompile Include="src\Context\Window.cpp" />
     <ClCompile Include="src\GolmonRenderer.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="src\Objects\Buffer.cpp" />
+    <ClCompile Include="src\Objects\Commands.cpp" />
+    <ClCompile Include="src\Objects\Descriptor.cpp" />
+    <ClCompile Include="src\Objects\GraphicsPipeline.cpp" />
     <ClCompile Include="src\Objects\Image.cpp" />
+    <ClCompile Include="src\Objects\Shader.cpp" />
+    <ClCompile Include="src\Objects\Sync.cpp" />
     <ClCompile Include="src\utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\Context\Context.hpp" />
     <ClInclude Include="include\Context\Device.hpp" />
     <ClInclude Include="include\Context\Instance.hpp" />
     <ClInclude Include="include\Context\Window.hpp" />
     <ClInclude Include="include\GolmonRenderer.hpp" />
+    <ClInclude Include="include\Objects\Buffer.hpp" />
+    <ClInclude Include="include\Objects\Commands.hpp" />
+    <ClInclude Include="include\Objects\Descriptor.hpp" />
+    <ClInclude Include="include\Objects\GraphicsPipeline.hpp" />
     <ClInclude Include="include\Objects\Image.hpp" />
+    <ClInclude Include="include\Objects\Shader.hpp" />
+    <ClInclude Include="include\Objects\Sync.hpp" />
     <ClInclude Include="include\utils.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

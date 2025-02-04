@@ -6,7 +6,7 @@
 namespace gr {
 	
 	class Device {
-		friend class Context;
+		friend class ctx;
 		friend class Window;
 		friend class Instance;
 
@@ -24,7 +24,16 @@ namespace gr {
 
 		VkPhysicalDeviceProperties properties;
 		VkPhysicalDeviceFeatures features;
+		VkPhysicalDeviceMemoryProperties memory_properties;
+
 		std::vector<VkQueueFamilyProperties> family_properties;
+
+		VkSurfaceFormatKHR format = {
+			VK_FORMAT_B8G8R8A8_SRGB,
+			VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
+		};
+
+		VkExtent2D extent = {};
 
 		struct {
 			VkQueue graphics = nullptr;
@@ -42,11 +51,6 @@ namespace gr {
 
 	private:
 
-		//VkSurfaceFormatKHR format = {
-		//	.format = VK_FORMAT_R8G8B8_SRGB,
-		//	.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
-		//};
-
 		void dump(void);
 		void get_info(void);
 		std::vector<VkDeviceQueueCreateInfo> choose_queues(void);
@@ -54,4 +58,9 @@ namespace gr {
 		std::vector<char const*> _extensions;
 		uint32_t _gpu = 0;
 	};
+
+	VkMemoryRequirements get_memory_requirements(VkImage image);
+	VkMemoryRequirements get_memory_requirements(VkBuffer buffer);
+	uint32_t find_memory_type(uint32_t type_filter, VkMemoryPropertyFlags properties);
+	void wait_idle(void);
 }

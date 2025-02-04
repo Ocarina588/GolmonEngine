@@ -4,10 +4,12 @@
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
 
+#include "Objects/Image.hpp"
+
 namespace gr {
 
 	class Window {
-		friend class Context;
+		friend class ctx;
 		friend class Instance;
 
 	public:
@@ -34,9 +36,8 @@ namespace gr {
 		VkPresentModeKHR mode = VK_PRESENT_MODE_IMMEDIATE_KHR;
 		std::vector<VkSurfaceFormatKHR> formats;
 
-		std::vector<VkImage> images;
-		std::vector<VkImageView> views;
-		std::vector<VkFramebuffer> framebuffers;
+		std::vector<gr::Image> images;
+		uint32_t image_index = 0;
 
 
 	private:
@@ -46,11 +47,12 @@ namespace gr {
 		void init_surface(void);
 		void init_swapchain(void);
 		void init_swapchain_resources(void);
-
+		void clean_swapchain(void);
 		std::vector<char const*> get_required_extensions(void);
 
 		char const* title = nullptr;
-
-
 	};
+
+	void acquire_next_image(VkSemaphore s, VkFence f = nullptr);
+	void present(VkSemaphore s);
 }

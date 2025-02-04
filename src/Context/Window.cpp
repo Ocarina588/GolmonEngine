@@ -3,8 +3,9 @@
 
 #include "GolmonRenderer.hpp"
 #include "utils.hpp"
+#include "Objects/Image.hpp"
 
-using Vk = gr::Context;
+using Vk = gr::ctx;
 
 gr::Window::Window(void)
 {
@@ -15,6 +16,7 @@ gr::Window::~Window(void)
 {
 	if (ptr == nullptr) return;
 
+	clean_swapchain();
 	vkDestroySwapchainKHR(Vk::device, Vk::window.swapchain, nullptr);
 	vkDestroySurfaceKHR(Vk::instance, surface, nullptr);
 	glfwDestroyWindow(ptr);
@@ -62,7 +64,6 @@ VkExtent2D gr::Window::get_extent(void)
 
 void gr::Window::init_swapchain(void)
 {
-
 	VkSwapchainCreateInfoKHR create_info{ VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
 
 	create_info.surface = Vk::window.surface;
@@ -77,7 +78,7 @@ void gr::Window::init_swapchain(void)
 	create_info.imageExtent.height = std::clamp(create_info.imageExtent.height,
 		Vk::window.capabilites.minImageExtent.height, Vk::window.capabilites.maxImageExtent.height);
 	create_info.imageArrayLayers = 1;
-	create_info.imageUsage = VK_IMAGE_ASPECT_COLOR_BIT;
+	create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 	create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	if (Vk::device.index.present != Vk::device.index.graphics)
 		throw std::runtime_error("need to setup sharing mode concurrent");
@@ -90,6 +91,10 @@ void gr::Window::init_swapchain(void)
 	if (vkCreateSwapchainKHR(Vk::device, &create_info, nullptr, &swapchain) != VK_SUCCESS)
 		throw std::runtime_error("failed to create swapchain");
 
+	Vk::device.extent = create_info.imageExtent;
+	Vk::device.format.format = create_info.imageFormat;
+	Vk::device.format.colorSpace = create_info.imageColorSpace;
+
 	init_swapchain_resources();
 
 	dump_swapchain();
@@ -97,16 +102,20 @@ void gr::Window::init_swapchain(void)
 
 void gr::Window::init_swapchain_resources(void)
 {
+	std::vector<VkImage> tmp;
 	uint32_t count = 0;
 	vkGetSwapchainImagesKHR(Vk::device, swapchain, &count, nullptr);
 	images.resize(count);
-	views.resize(count);
-	framebuffers.resize(count);
-	vkGetSwapchainImagesKHR(Vk::device, swapchain, &count, images.data());
+	tmp.resize(count);
+	vkGetSwapchainImagesKHR(Vk::device, swapchain, &count, tmp.data());
 
-	for (uint32_t i = 0; i < count; i++) {
+	for (uint32_t i = 0; i < count; i++)
+		images[i].init(tmp[i], VK_IMAGE_ASPECT_COLOR_BIT);
+}
 
-	}
+void gr::Window::clean_swapchain(void)
+{
+	images.clear();
 }
 
 void gr::Window::dump(void)
@@ -137,4 +146,26 @@ void gr::Window::dump_swapchain(void)
 
 	std::cout << TERMINAL_COLOR_CYAN << "Swapchain creation SUCCESS" << std::endl;
 	std::cout << TERMINAL_COLOR_RESET;
+}
+
+// FUNCTIONS
+
+void gr::acquire_next_image(VkSemaphore s, VkFence f)
+{
+	if (vkAcquireNextImageKHR(gr::ctx::device, gr::ctx::window.swapchain, UINT64_MAX, s, f, &gr::ctx::window.image_index) != VK_SUCCESS)
+		throw std::runtime_error("failed to get next swapchain image");
+}
+
+void gr::present(VkSemaphore s)
+{
+	VkPresentInfoKHR present_info{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+
+	present_info.waitSemaphoreCount = s != nullptr;
+	present_info.pWaitSemaphores = &s;
+	present_info.swapchainCount = 1;
+	present_info.pSwapchains = &ctx::window.swapchain;
+	present_info.pImageIndices = &ctx::window.image_index;
+
+	if (vkQueuePresentKHR(ctx::device.queue.present, &present_info) != VK_SUCCESS) 
+		throw std::runtime_error("failed to present");
 }

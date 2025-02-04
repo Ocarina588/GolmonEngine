@@ -1,7 +1,7 @@
 #include <iostream>
 #include "GolmonRenderer.hpp"
 
-using Vk = gr::Context;
+using Vk = gr::ctx;
 
 gr::Instance::Instance(void)
 {
