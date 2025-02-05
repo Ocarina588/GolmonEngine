@@ -5,7 +5,7 @@
 #include "Context/Context.hpp"
 #include "Context/Device.hpp"
 
-namespace gr {
+namespace ge {
 
 	class Semaphore {
 	public:
@@ -30,8 +30,8 @@ namespace gr {
 		operator VkFence* () { return &ptr; };
 
 		void init(bool signaled = true);
-		inline void wait(bool _reset = true) { if (vkWaitForFences(gr::ctx::device.ptr, 1, &ptr, VK_TRUE, UINT64_MAX) != VK_SUCCESS) throw std::runtime_error("failed to wait for fences"); if (_reset) reset(); }
-		inline void reset(void) { vkResetFences(gr::ctx::device.ptr, 1, &ptr); }
+		inline void wait(bool _reset = true) { if (vkWaitForFences(ge::ctx::device.ptr, 1, &ptr, VK_TRUE, UINT64_MAX) != VK_SUCCESS) throw std::runtime_error("failed to wait for fences"); if (_reset) reset(); }
+		inline void reset(void) { vkResetFences(ge::ctx::device.ptr, 1, &ptr); }
 
 		VkFence ptr = nullptr;
 	private:

@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace gr {
+namespace ge {
 
 	class Instance {
 		friend class ctx;

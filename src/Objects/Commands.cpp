@@ -1,6 +1,6 @@
-#include "GolmonRenderer.hpp"
+#include "GolmonEngine.hpp"
 
-using namespace gr;
+using namespace ge;
 
 void CommandPool::init(uint32_t index)
 {

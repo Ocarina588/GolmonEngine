@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace gr {
+namespace ge {
 
 	class Semaphore;
 	class Fence;

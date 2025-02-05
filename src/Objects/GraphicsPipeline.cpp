@@ -1,6 +1,6 @@
-#include "GolmonRenderer.hpp"
+#include "GolmonEngine.hpp"
 
-using namespace gr;
+using namespace ge;
 
 RenderPass::RenderPass(void)
 {
@@ -55,9 +55,8 @@ void RenderPass::init(void)
 
 void RenderPass::begin(CommandBuffer& buffer, VkFramebuffer frame_buffer, VkExtent2D extent)
 {
-	VkClearValue clearColor = { {{0.2f, 0.1f, 0.5f, 1.0f}} };
 	VkClearValue clear_depth = { .depthStencil = {1.f, 0} };
-	VkClearValue clear_values[] = { clearColor, clear_depth };
+	VkClearValue clear_values[] = { clear_color, clear_depth };
 
 	VkRenderPassBeginInfo begin_info{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 	begin_info.clearValueCount = 1 + (depth_image != nullptr);
@@ -65,10 +64,10 @@ void RenderPass::begin(CommandBuffer& buffer, VkFramebuffer frame_buffer, VkExte
 	if (frame_buffer)
 		begin_info.framebuffer = frame_buffer;
 	else
-		begin_info.framebuffer = gr::ctx::window.images[gr::ctx::window.image_index];
+		begin_info.framebuffer = ge::ctx::window.images[ge::ctx::window.image_index];
 	begin_info.renderArea.offset = {};
 	if (extent.width == 0 && extent.height == 0)
-		begin_info.renderArea.extent = gr::ctx::device.extent;
+		begin_info.renderArea.extent = ge::ctx::device.extent;
 	else
 		begin_info.renderArea.extent = extent;
 	begin_info.renderPass = ptr;

@@ -1,25 +1,25 @@
-#include "GolmonRenderer.hpp"
+#include "GolmonEngine.hpp"
 #include "Objects/Image.hpp"
 
-using Vk = gr::ctx;
+using Vk = ge::ctx;
 
-gr::Image::Image(void)
+ge::Image::Image(void)
 {
 
 }
 
-gr::Image::Image(VkImageUsageFlags usage, VkImageAspectFlags aspect, VkMemoryPropertyFlags properties,
+ge::Image::Image(VkImageUsageFlags usage, VkImageAspectFlags aspect, VkMemoryPropertyFlags properties,
 	VkFormat _format, VkImageLayout layout, VkExtent2D extent)
 {
 	init(usage, aspect, properties, _format, layout, extent);
 }
 
-gr::Image::Image(VkImage image, VkImageAspectFlags aspect, VkFormat format)
+ge::Image::Image(VkImage image, VkImageAspectFlags aspect, VkFormat format)
 {
 	init(image, aspect, format);
 }
 
-gr::Image::~Image(void)
+ge::Image::~Image(void)
 {
 	if (memory) {
 		vkFreeMemory(Vk::device, memory, nullptr);
@@ -30,7 +30,7 @@ gr::Image::~Image(void)
 	vkDestroyImageView(Vk::device, view, nullptr);
 }
 
-void gr::Image::init(VkImageUsageFlags usage, VkImageAspectFlags aspect, VkMemoryPropertyFlags properties,
+void ge::Image::init(VkImageUsageFlags usage, VkImageAspectFlags aspect, VkMemoryPropertyFlags properties,
 	VkFormat _format, VkImageLayout layout, VkExtent2D extent)
 {
 	ptr = create_image(usage, _format, layout, extent);
@@ -43,18 +43,18 @@ void gr::Image::init(VkImageUsageFlags usage, VkImageAspectFlags aspect, VkMemor
 	format = (_format == VK_FORMAT_UNDEFINED) ? Vk::device.format.format : _format;
 }
 
-void gr::Image::init(VkImage image, VkImageAspectFlags aspect, VkFormat format)
+void ge::Image::init(VkImage image, VkImageAspectFlags aspect, VkFormat format)
 {
 	ptr = image;
 	view = create_view(image, aspect, format);
 }
 
-void gr::Image::create_framebuffer(gr::RenderPass& render_pass, VkExtent2D extent)
+void ge::Image::create_framebuffer(ge::RenderPass& render_pass, VkExtent2D extent)
 {
 	framebuffer = create_framebuffer(view, render_pass, extent);
 }
 
-VkImage gr::Image::create_image(VkImageUsageFlags usage, VkFormat _format, VkImageLayout layout, VkExtent2D extent)
+VkImage ge::Image::create_image(VkImageUsageFlags usage, VkFormat _format, VkImageLayout layout, VkExtent2D extent)
 {
 	VkImageCreateInfo create_info{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 	VkImage image = nullptr;
@@ -83,7 +83,7 @@ VkImage gr::Image::create_image(VkImageUsageFlags usage, VkFormat _format, VkIma
 	return image;
 }
 
-VkImageView gr::Image::create_view(VkImage image, VkImageAspectFlags aspect, VkFormat format)
+VkImageView ge::Image::create_view(VkImage image, VkImageAspectFlags aspect, VkFormat format)
 {
 	VkImageView view = nullptr;
 	VkImageViewCreateInfo create_info{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
@@ -104,14 +104,14 @@ VkImageView gr::Image::create_view(VkImage image, VkImageAspectFlags aspect, VkF
 	return view;
 }
 
-VkDeviceMemory gr::Image::create_memory(VkImage image, VkMemoryPropertyFlags properties)
+VkDeviceMemory ge::Image::create_memory(VkImage image, VkMemoryPropertyFlags properties)
 {
 	VkMemoryAllocateInfo info{ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
 	VkDeviceMemory memory = nullptr;
-	auto m = gr::get_memory_requirements(image);
+	auto m = ge::get_memory_requirements(image);
 
 	info.allocationSize = m.size;
-	info.memoryTypeIndex = gr::find_memory_type(m.memoryTypeBits, properties);
+	info.memoryTypeIndex = ge::find_memory_type(m.memoryTypeBits, properties);
 
 	if (vkAllocateMemory(ctx::device, &info, nullptr, &memory) != VK_SUCCESS)
 		throw std::runtime_error("failed to allocate memory");
@@ -119,7 +119,7 @@ VkDeviceMemory gr::Image::create_memory(VkImage image, VkMemoryPropertyFlags pro
 	return memory;
 }
 
-VkFramebuffer gr::Image::create_framebuffer(VkImageView view, gr::RenderPass &render_pass, VkExtent2D extent)
+VkFramebuffer ge::Image::create_framebuffer(VkImageView view, ge::RenderPass &render_pass, VkExtent2D extent)
 {
 	VkFramebufferCreateInfo create_info{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
 	VkFramebuffer framebuffer = nullptr;

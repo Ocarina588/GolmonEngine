@@ -1,9 +1,9 @@
 #include <iostream>
-#include "GolmonRenderer.hpp"
+#include "GolmonEngine.hpp"
 
-using Vk = gr::ctx;
+using Vk = ge::ctx;
 
-gr::Instance::Instance(void)
+ge::Instance::Instance(void)
 {
 	app_info.pEngineName = "GolmonRenderer";
 	app_info.pApplicationName = "VulkanApp";
@@ -11,7 +11,7 @@ gr::Instance::Instance(void)
 	app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 }
 
-gr::Instance::~Instance(void)
+ge::Instance::~Instance(void)
 {
 	if (_debug_messenger)
 		destroy_debug_messenger();
@@ -60,7 +60,7 @@ static VkDebugUtilsMessengerCreateInfoEXT get_debug_messenger_create_info(void)
 	return create_info;
 }
 
-void gr::Instance::create_debug_messenger(void)
+void ge::Instance::create_debug_messenger(void)
 {
 	VkDebugUtilsMessengerCreateInfoEXT create_info = get_debug_messenger_create_info();
 	auto func = GET_INSTANCE_PROC(ptr, PFN_vkCreateDebugUtilsMessengerEXT);
@@ -71,7 +71,7 @@ void gr::Instance::create_debug_messenger(void)
 		throw std::runtime_error("failed to create debug messenger");
 }
 
-void gr::Instance::destroy_debug_messenger(void)
+void ge::Instance::destroy_debug_messenger(void)
 {
 	auto func = GET_INSTANCE_PROC(ptr, PFN_vkDestroyDebugUtilsMessengerEXT);
 	if (func == nullptr)
@@ -79,7 +79,7 @@ void gr::Instance::destroy_debug_messenger(void)
 	func(ptr, _debug_messenger, nullptr);
 }
 
-void gr::Instance::init(void)
+void ge::Instance::init(void)
 {
 	VkInstanceCreateInfo create_info{ VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
 	auto debug_info = get_debug_messenger_create_info();
@@ -107,7 +107,7 @@ void gr::Instance::init(void)
 
 }
 
-void gr::Instance::dump(void)
+void ge::Instance::dump(void)
 {
 	std::cout << TERMINAL_COLOR_YELLOW << "Instance extensions:" << std::endl;
 	std::cout << TERMINAL_COLOR_GREEN;

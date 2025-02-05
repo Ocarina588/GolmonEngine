@@ -1,7 +1,7 @@
 #pragma once
 #include "Context/Context.hpp"
 
-namespace gr {
+namespace ge {
 
 	class Buffer {
 	public:
@@ -9,6 +9,8 @@ namespace gr {
 		Buffer(void* p, uint32_t _size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties) { init(p, _size, usage, properties); }
 		Buffer(void) {};
 		~Buffer(void);
+
+		operator VkBuffer () { return ptr; };
 
 		void init(uint32_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkMemoryAllocateFlags flag = 0);
 		inline void init(void* p, uint32_t _size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkMemoryAllocateFlags flag = 0) {

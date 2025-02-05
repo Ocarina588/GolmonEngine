@@ -1,9 +1,10 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include <glm/glm.hpp>
 #include "Objects/Commands.hpp"
 
-namespace gr {
+namespace ge {
 
 	class Image;
 	class CommandBuffer;
@@ -19,7 +20,7 @@ namespace gr {
 		inline void use_depth(Image& _depth_image) { subpass_description.pDepthStencilAttachment = &depth_ref; depth_image = &_depth_image; }
 		inline void set_final_layout(VkImageLayout layout) { color_attachment.finalLayout = layout; }
 		inline void set_initial_layout(VkImageLayout layout) { color_attachment.initialLayout = layout; }
-
+		inline void set_clear_color(glm::vec3 color) { clear_color = { {{color.x, color.y, color.z}} }; }
 		void begin(CommandBuffer& buffer, VkFramebuffer frame_buffer = nullptr, VkExtent2D extent = {});
 		void end(CommandBuffer& buffer);
 
@@ -38,6 +39,7 @@ namespace gr {
 		VkAttachmentReference color_ref{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
 		VkAttachmentReference depth_ref{ 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
 		VkSubpassDescription subpass_description{};
+		VkClearValue clear_color = { {{0.f, 0.f, 0.f}} };
 		Image* depth_image = nullptr;
 	};
 

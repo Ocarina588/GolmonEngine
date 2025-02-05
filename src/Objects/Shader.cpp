@@ -1,6 +1,6 @@
-#include "GolmonRenderer.hpp"
+#include "GolmonEngine.hpp"
 
-gr::Shader::Shader(char const* file_name, VkShaderStageFlagBits flag)
+ge::Shader::Shader(char const* file_name, VkShaderStageFlagBits flag)
 {
 	auto data = utils::readFile(file_name);
 
@@ -16,7 +16,7 @@ gr::Shader::Shader(char const* file_name, VkShaderStageFlagBits flag)
 	stage.stage = flag;
 }
 
-gr::Shader::~Shader(void)
+ge::Shader::~Shader(void)
 {
 	vkDestroyShaderModule(ctx::device.ptr, stage.module, nullptr);
 }

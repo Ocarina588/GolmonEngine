@@ -3,7 +3,7 @@
 #include <vulkan/vulkan.h>
 #include "Objects/GraphicsPipeline.hpp"
 
-namespace gr {
+namespace ge {
 
 	class Image {
 		friend class Window;
@@ -25,12 +25,12 @@ namespace gr {
 			VkFormat format = VK_FORMAT_UNDEFINED, VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED, VkExtent2D extent = {}
 		);
 		void init(VkImage image, VkImageAspectFlags aspect, VkFormat format = VK_FORMAT_UNDEFINED);
-		void create_framebuffer(gr::RenderPass& render_pass, VkExtent2D extent = {});
+		void create_framebuffer(ge::RenderPass& render_pass, VkExtent2D extent = {});
 
 		static VkImage create_image(VkImageUsageFlags usage, VkFormat format = VK_FORMAT_UNDEFINED, VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED, VkExtent2D extent = {});
 		static VkImageView create_view(VkImage image, VkImageAspectFlags aspect, VkFormat format = VK_FORMAT_UNDEFINED);
 		static VkDeviceMemory create_memory(VkImage image, VkMemoryPropertyFlags properties);
-		static VkFramebuffer create_framebuffer(VkImageView view, gr::RenderPass& render_pass, VkExtent2D extent = {});
+		static VkFramebuffer create_framebuffer(VkImageView view, ge::RenderPass& render_pass, VkExtent2D extent = {});
 
 		VkFormat format = VK_FORMAT_UNDEFINED;
 	private:

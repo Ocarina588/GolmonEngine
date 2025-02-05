@@ -3,7 +3,7 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 
-namespace gr {
+namespace ge {
 	
 	class Device {
 		friend class ctx;

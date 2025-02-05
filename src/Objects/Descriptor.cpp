@@ -1,7 +1,7 @@
 #include <unordered_map>
-#include "GolmonRenderer.hpp"
+#include "GolmonEngine.hpp"
 
-using namespace gr;
+using namespace ge;
 
 DescriptorPool::DescriptorPool(void)
 {

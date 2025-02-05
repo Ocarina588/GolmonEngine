@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace gr {
+namespace ge {
 
 	class Instance;
 	class Window;
@@ -14,6 +14,7 @@ namespace gr {
 		static void init(void);
 
 		static void set_extent(uint32_t w, uint32_t h);
+		static void set_mode(VkPresentModeKHR mode);
 		static void use_debug(void);
 		static void use_window(char const* t);
 		static void use_gpu(uint32_t index);
@@ -21,9 +22,9 @@ namespace gr {
 		static void add_instance_extension(char const* e);
 		static void add_device_extension(char const* e);
 
-		static gr::Instance instance;
-		static gr::Window window;
-		static gr::Device device;
+		static ge::Instance instance;
+		static ge::Window window;
+		static ge::Device device;
 
 	private:
 

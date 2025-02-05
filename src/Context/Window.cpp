@@ -1,18 +1,18 @@
 #include <iostream>
 #include <algorithm>
 
-#include "GolmonRenderer.hpp"
+#include "GolmonEngine.hpp"
 #include "utils.hpp"
 #include "Objects/Image.hpp"
 
-using Vk = gr::ctx;
+using Vk = ge::ctx;
 
-gr::Window::Window(void)
+ge::Window::Window(void)
 {
 
 }
 
-gr::Window::~Window(void)
+ge::Window::~Window(void)
 {
 	if (ptr == nullptr) return;
 
@@ -23,7 +23,7 @@ gr::Window::~Window(void)
 	glfwTerminate();
 }
 
-void gr::Window::init(int w, int h, char const* t)
+void ge::Window::init(int w, int h, char const* t)
 {
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -36,7 +36,7 @@ void gr::Window::init(int w, int h, char const* t)
 	dump();
 }
 
-std::vector<char const *> gr::Window::get_required_extensions(void)
+std::vector<char const *> ge::Window::get_required_extensions(void)
 {
 	uint32_t count = 0;
 	char const ** tmp = glfwGetRequiredInstanceExtensions(&count);
@@ -44,13 +44,13 @@ std::vector<char const *> gr::Window::get_required_extensions(void)
 	return std::vector<char const*>(tmp, tmp + count);
 }
 
-void gr::Window::init_surface(void)
+void ge::Window::init_surface(void)
 {
 	if (glfwCreateWindowSurface(Vk::instance, ptr, nullptr, &surface) != VK_SUCCESS)
 		throw std::runtime_error("failed to create surface");
 }
 
-VkExtent2D gr::Window::get_extent(void)
+VkExtent2D ge::Window::get_extent(void)
 {
 	int w = 0;
 	int h = 0;
@@ -62,7 +62,7 @@ VkExtent2D gr::Window::get_extent(void)
 	};
 }
 
-void gr::Window::init_swapchain(void)
+void ge::Window::init_swapchain(void)
 {
 	VkSwapchainCreateInfoKHR create_info{ VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
 
@@ -100,7 +100,7 @@ void gr::Window::init_swapchain(void)
 	dump_swapchain();
 }
 
-void gr::Window::init_swapchain_resources(void)
+void ge::Window::init_swapchain_resources(void)
 {
 	std::vector<VkImage> tmp;
 	uint32_t count = 0;
@@ -113,18 +113,18 @@ void gr::Window::init_swapchain_resources(void)
 		images[i].init(tmp[i], VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
-void gr::Window::clean_swapchain(void)
+void ge::Window::clean_swapchain(void)
 {
 	images.clear();
 }
 
-void gr::Window::dump(void)
+void ge::Window::dump(void)
 {
 	std::cout << TERMINAL_COLOR_CYAN << "Window creation SUCCESS" << std::endl;
 	std::cout << TERMINAL_COLOR_RESET;
 }
 
-void gr::Window::dump_swapchain(void)
+void ge::Window::dump_swapchain(void)
 {
 	char const* present_modes[] = {
 		"VK_PRESENT_MODE_IMMEDIATE_KHR",
@@ -150,13 +150,13 @@ void gr::Window::dump_swapchain(void)
 
 // FUNCTIONS
 
-void gr::acquire_next_image(VkSemaphore s, VkFence f)
+void ge::acquire_next_image(VkSemaphore s, VkFence f)
 {
-	if (vkAcquireNextImageKHR(gr::ctx::device, gr::ctx::window.swapchain, UINT64_MAX, s, f, &gr::ctx::window.image_index) != VK_SUCCESS)
+	if (vkAcquireNextImageKHR(ge::ctx::device, ge::ctx::window.swapchain, UINT64_MAX, s, f, &ge::ctx::window.image_index) != VK_SUCCESS)
 		throw std::runtime_error("failed to get next swapchain image");
 }
 
-void gr::present(VkSemaphore s)
+void ge::present(VkSemaphore s)
 {
 	VkPresentInfoKHR present_info{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
 
@@ -168,4 +168,13 @@ void gr::present(VkSemaphore s)
 
 	if (vkQueuePresentKHR(ctx::device.queue.present, &present_info) != VK_SUCCESS) 
 		throw std::runtime_error("failed to present");
+}
+
+void ge::update_dt(void)
+{
+	static auto startTime = std::chrono::high_resolution_clock::now();
+
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	ge::ctx::window.dt = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+	startTime = currentTime;
 }

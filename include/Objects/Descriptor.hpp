@@ -3,7 +3,7 @@
 #include <iostream>
 #include <vulkan/vulkan.h>
 
-namespace gr {
+namespace ge {
 
 	class DescriptorPool {
 	public:

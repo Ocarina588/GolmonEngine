@@ -1,22 +1,25 @@
 #include <unordered_set>
-#include "GolmonRenderer.hpp"
+#include "GolmonEngine.hpp"
 
-using Vk = gr::ctx;
+using Vk = ge::ctx;
 
-gr::Device::Device(void)
+ge::Device::Device(void)
 {
 
 }
 
-gr::Device::~Device(void)
+ge::Device::~Device(void)
 {
 	vkDestroyDevice(ptr, nullptr);
 }
 
-void gr::Device::init(void)
+void ge::Device::init(void)
 {
 	VkDeviceCreateInfo create_info{ VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
 	uint32_t count = 0;
+
+	VkPhysicalDeviceFeatures deviceFeatures{};
+	deviceFeatures.geometryShader = VK_TRUE;
 
 	vkEnumeratePhysicalDevices(Vk::instance, &count, nullptr);
 	std::vector<VkPhysicalDevice> physical_devices(count);
@@ -35,6 +38,7 @@ void gr::Device::init(void)
 	create_info.ppEnabledExtensionNames = _extensions.data();
 	create_info.queueCreateInfoCount = static_cast<uint32_t>(queue_infos.size());
 	create_info.pQueueCreateInfos = queue_infos.data();
+	create_info.pEnabledFeatures = &features;
 
 	if (vkCreateDevice(physical_ptr, &create_info, nullptr, &ptr) != VK_SUCCESS)
 		throw std::runtime_error("failed to create device");
@@ -49,7 +53,7 @@ void gr::Device::init(void)
 
 }
 
-void gr::Device::get_info(void)
+void ge::Device::get_info(void)
 {
 	uint32_t count = 0;
 
@@ -70,7 +74,7 @@ void gr::Device::get_info(void)
 	vkGetPhysicalDeviceSurfaceFormatsKHR(physical_ptr, Vk::window.surface, &count, Vk::window.formats.data());
 }
 
-std::vector<VkDeviceQueueCreateInfo> gr::Device::choose_queues(void)
+std::vector<VkDeviceQueueCreateInfo> ge::Device::choose_queues(void)
 {
 	for (uint32_t i = 0; i < family_properties.size(); i++) {
 		if (index.graphics == ~(0u) && family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
@@ -110,7 +114,7 @@ std::vector<VkDeviceQueueCreateInfo> gr::Device::choose_queues(void)
 	return create_infos;
 }
 
-void gr::Device::dump(void)
+void ge::Device::dump(void)
 {
 	std::cout << TERMINAL_COLOR_YELLOW;
 	std::cout << "Device extensions:" << std::endl;
@@ -127,7 +131,7 @@ void gr::Device::dump(void)
 
 // FUNCTIONS 
 
-uint32_t gr::find_memory_type(uint32_t type_filter, VkMemoryPropertyFlags properties)
+uint32_t ge::find_memory_type(uint32_t type_filter, VkMemoryPropertyFlags properties)
 {
 	auto const &m = ctx::device.memory_properties;
 
@@ -140,21 +144,21 @@ uint32_t gr::find_memory_type(uint32_t type_filter, VkMemoryPropertyFlags proper
 	return 0;
 }
 
-VkMemoryRequirements gr::get_memory_requirements(VkImage image)
+VkMemoryRequirements ge::get_memory_requirements(VkImage image)
 {
 	VkMemoryRequirements r;
 	vkGetImageMemoryRequirements(ctx::device, image, &r);
 	return r;
 }
 
-VkMemoryRequirements gr::get_memory_requirements(VkBuffer buffer)
+VkMemoryRequirements ge::get_memory_requirements(VkBuffer buffer)
 {
 	VkMemoryRequirements r;
 	vkGetBufferMemoryRequirements(ctx::device, buffer, &r);
 	return r;
 }
 
-void gr::wait_idle(void)
+void ge::wait_idle(void)
 {
-	vkDeviceWaitIdle(gr::ctx::device);
+	vkDeviceWaitIdle(ge::ctx::device);
 }

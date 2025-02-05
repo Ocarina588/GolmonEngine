@@ -6,7 +6,7 @@
 
 #include "Objects/Image.hpp"
 
-namespace gr {
+namespace ge {
 
 	class Window {
 		friend class ctx;
@@ -33,12 +33,11 @@ namespace gr {
 		VkSwapchainKHR swapchain = nullptr;
 
 		VkSurfaceCapabilitiesKHR capabilites{};
-		VkPresentModeKHR mode = VK_PRESENT_MODE_IMMEDIATE_KHR;
 		std::vector<VkSurfaceFormatKHR> formats;
 
-		std::vector<gr::Image> images;
+		std::vector<ge::Image> images;
 		uint32_t image_index = 0;
-
+		double dt = 0;
 
 	private:
 		void dump(void);
@@ -51,8 +50,10 @@ namespace gr {
 		std::vector<char const*> get_required_extensions(void);
 
 		char const* title = nullptr;
+		VkPresentModeKHR mode = VK_PRESENT_MODE_IMMEDIATE_KHR;
 	};
 
 	void acquire_next_image(VkSemaphore s, VkFence f = nullptr);
 	void present(VkSemaphore s);
+	void update_dt(void);
 }
