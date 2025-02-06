@@ -12,7 +12,6 @@ Core::Core(void)
 
 	events.init(this);
 	camera.init();
-	mesh.load_from_glb("models/DamagedHelmet.glb");
 
 	depth_image.init(
 		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT,
@@ -33,11 +32,20 @@ Core::Core(void)
 	for (auto& i : ge::ctx::window.images)
 		i.create_framebuffer(render_pass);
 
+	ge::Assets::load_glb("models/DamagedHelmet.glb");
+	ge::Assets::init_materials(command_buffer);
+
+	sampler.init();
+
 	descriptors.add_set(1)
-		.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+		.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)				// camera
+		.add_binding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)	// normal map
+		.add_binding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);	// color
 	descriptors.init();
 
 	descriptors.add_write(0, 0, 0, camera);
+	descriptors.add_write(0, 0, 1, ge::Assets::materials[0].normal, VK_IMAGE_LAYOUT_GENERAL, sampler);
+	descriptors.add_write(0, 0, 2, ge::Assets::materials[0].color, VK_IMAGE_LAYOUT_GENERAL, sampler);
 	descriptors.write();
 
 	ge::Shader v("shaders/vertex.spv", VK_SHADER_STAGE_VERTEX_BIT);
@@ -57,6 +65,7 @@ Core::Core(void)
 Core::~Core(void)
 {
 	ge::wait_idle(); 
+	ge::Assets::clear();
 }
 
 int Core::main(int ac, char **av)
@@ -75,7 +84,8 @@ int Core::main(int ac, char **av)
 			vkCmdBindDescriptorSets(command_buffer.ptr, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				gp.layout, 0, 1, &descriptors.get_set(0, 0), 0, nullptr);
 
-			mesh.draw(command_buffer);
+			ge::Assets::meshes["models/DamagedHelmet.glb"]->draw(command_buffer);
+			
 			render_pass.end(command_buffer);
 		}
 		command_buffer.end();
@@ -83,6 +93,7 @@ int Core::main(int ac, char **av)
 
 		ge::present(finished_rendering);
 	}
+
 	return 0;
 }
 

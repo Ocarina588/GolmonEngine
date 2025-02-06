@@ -11,7 +11,7 @@ int main(int ac, char** av)
 		Core core;
 		return core.main(ac, av);
 	}
-	catch (std::exception e) {
+	catch (std::exception const &e) {
 		std::cerr << e.what() << std::endl;
 		return (1);
 	}

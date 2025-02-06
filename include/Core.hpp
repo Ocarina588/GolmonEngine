@@ -14,6 +14,7 @@ public:
 	ge::Events events;
 	ge::Camera camera;
 	ge::Mesh mesh;
+	ge::Sampler sampler;
 
 	ge::Image depth_image;
 	ge::Semaphore image_acquired, finished_rendering;

@@ -22,7 +22,7 @@ namespace ge {
 
 		inline void map(void) { if (vkMapMemory(ctx::device.ptr, memory, 0, size, 0, &data) != VK_SUCCESS) throw std::runtime_error("failed to map memory"); }
 		inline void unmap(void) { vkUnmapMemory(ctx::device.ptr, memory); }
-		inline void memcpy(void* p, uint32_t _size) { std::memcpy(data, p, _size); }
+		inline void memcpy(void const* p, uint32_t _size) { std::memcpy(data, p, _size); }
 
 		void* data = nullptr;
 

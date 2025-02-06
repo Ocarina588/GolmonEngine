@@ -130,6 +130,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\Assets.cpp" />
     <ClCompile Include="src\Context\Device.cpp" />
     <ClCompile Include="src\Context\Instance.cpp" />
     <ClCompile Include="src\Context\Window.cpp" />
@@ -148,6 +149,7 @@
     <ClCompile Include="src\utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\Assets.hpp" />
     <ClInclude Include="include\Context\Context.hpp" />
     <ClInclude Include="include\Context\Device.hpp" />
     <ClInclude Include="include\Context\Instance.hpp" />

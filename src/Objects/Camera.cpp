@@ -19,7 +19,6 @@ void ge::Camera::init(void)
 		(float)ge::ctx::device.extent.height, 0.01f, 1000.0f);
 	ubo.proj[1][1] *= -1;
 
-
 	buffer.init(
 		&ubo, sizeof(ge::UBO), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
@@ -49,7 +48,7 @@ glm::vec3 ge::Camera::rotate_around_point(const glm::vec3& point, const glm::vec
 
 void ge::Camera::process_mouse(double x, double y)
 {
-	float speed = 10.f;
+	float speed = 3.f;
 	float dt = (float)ge::ctx::window.dt;
 	
 	pos = rotate_around_point(pos, target, { 0.f, 1.f, 0.f }, -(float)x * speed * dt * glm::radians(90.f));

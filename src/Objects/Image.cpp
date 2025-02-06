@@ -49,12 +49,9 @@ void ge::Image::init(VkImage image, VkImageAspectFlags aspect, VkFormat format)
 	view = create_view(image, aspect, format);
 }
 
-void ge::Image::init_compressed(ge::CommandBuffer& co, void* data, uint32_t size, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, VkMemoryPropertyFlags properties)
+void ge::Image::init_raw(ge::CommandBuffer& co, void const* data, uint32_t x, uint32_t y, uint32_t size, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, VkMemoryPropertyFlags properties)
 {
-	int x, y, c;
-	//auto image_data = stbi_load_from_memory((uint8_t*)data, size, &x, &y, &c, STBI_rgb_alpha);
-
-	init(usage, aspect, properties, format, VK_IMAGE_LAYOUT_GENERAL, { (uint32_t)x, (uint32_t)y });
+	init(usage, aspect, properties, format, VK_IMAGE_LAYOUT_UNDEFINED, { (uint32_t)x, (uint32_t)y });
 
 	ge::Buffer stagin_buffer;
 	stagin_buffer.init(
@@ -67,7 +64,7 @@ void ge::Image::init_compressed(ge::CommandBuffer& co, void* data, uint32_t size
 
 	co.begin();
 
-	//barrier(co, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+	barrier(co, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
 	VkBufferImageCopy region{};
 	region.bufferOffset = 0;
@@ -94,6 +91,14 @@ void ge::Image::init_compressed(ge::CommandBuffer& co, void* data, uint32_t size
 	co.submit(nullptr, nullptr, f);
 	f.wait();
 }
+
+void ge::Image::init_with_stbi(ge::CommandBuffer& co, void const * data, uint32_t size, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, VkMemoryPropertyFlags properties)
+{
+	int x = 0, y = 0, c = 0;
+	auto image_data = ge::Assets::load_from_memory((uint8_t*)data, size, &x, &y, &c, 4);
+	init_raw(co, image_data, x, y, x * y * c, format, usage, aspect, properties);	
+}
+
 
 void ge::Image::create_framebuffer(ge::RenderPass& render_pass, VkExtent2D extent)
 {

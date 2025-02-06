@@ -1,15 +1,12 @@
 #version 450
 
-layout(location = 0) in vec2 inColor;
+layout(location = 0) in vec2 uv;
 layout(location = 0) out vec4 outColor;
 
-vec3 colors[3] = {
-    {1.0, 0.0, 0.0},
-    {0.0, 1.0, 0.0},
-    {0.0, 0.0, 0.0}
-};
+layout(set = 0, binding = 1) uniform sampler2D normal_map;
+layout(set = 0, binding = 2) uniform sampler2D color_map;
 
 void main() {
-    outColor = vec4(colors[gl_PrimitiveID % 3], 1.0);
-    outColor = vec4(inColor, 0.0, 1.0);
+
+    outColor = texture(color_map, uv);
 }
