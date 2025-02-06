@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan.h>
 #include "Objects/GraphicsPipeline.hpp"
+#include "Objects/Commands.hpp"
 
 namespace ge {
 
@@ -25,7 +26,9 @@ namespace ge {
 			VkFormat format = VK_FORMAT_UNDEFINED, VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED, VkExtent2D extent = {}
 		);
 		void init(VkImage image, VkImageAspectFlags aspect, VkFormat format = VK_FORMAT_UNDEFINED);
+		void init_compressed(ge::CommandBuffer& co, void* data, uint32_t size, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, VkMemoryPropertyFlags properties);
 		void create_framebuffer(ge::RenderPass& render_pass, VkExtent2D extent = {});
+		void barrier(CommandBuffer& buffer, VkImageLayout old, VkImageLayout newl, VkPipelineStageFlags src, VkPipelineStageFlags dst);
 
 		static VkImage create_image(VkImageUsageFlags usage, VkFormat format = VK_FORMAT_UNDEFINED, VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED, VkExtent2D extent = {});
 		static VkImageView create_view(VkImage image, VkImageAspectFlags aspect, VkFormat format = VK_FORMAT_UNDEFINED);

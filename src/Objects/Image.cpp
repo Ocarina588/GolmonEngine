@@ -49,6 +49,52 @@ void ge::Image::init(VkImage image, VkImageAspectFlags aspect, VkFormat format)
 	view = create_view(image, aspect, format);
 }
 
+void ge::Image::init_compressed(ge::CommandBuffer& co, void* data, uint32_t size, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, VkMemoryPropertyFlags properties)
+{
+	int x, y, c;
+	//auto image_data = stbi_load_from_memory((uint8_t*)data, size, &x, &y, &c, STBI_rgb_alpha);
+
+	init(usage, aspect, properties, format, VK_IMAGE_LAYOUT_GENERAL, { (uint32_t)x, (uint32_t)y });
+
+	ge::Buffer stagin_buffer;
+	stagin_buffer.init(
+		x * y * 4, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+	);
+	stagin_buffer.map();
+	stagin_buffer.memcpy(data, size);
+	stagin_buffer.unmap();
+
+	co.begin();
+
+	//barrier(co, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+	VkBufferImageCopy region{};
+	region.bufferOffset = 0;
+	region.bufferRowLength = 0;
+	region.bufferImageHeight = 0;
+
+	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	region.imageSubresource.mipLevel = 0;
+	region.imageSubresource.baseArrayLayer = 0;
+	region.imageSubresource.layerCount = 1;
+
+	region.imageOffset = { 0, 0, 0 };
+	region.imageExtent = {
+		(uint32_t)x,
+		(uint32_t)y,
+		1
+	};
+
+	vkCmdCopyBufferToImage(co.ptr, stagin_buffer.ptr, ptr, VK_IMAGE_LAYOUT_GENERAL, 1, &region);
+
+	co.end();
+	ge::Fence f;
+	f.init(false);
+	co.submit(nullptr, nullptr, f);
+	f.wait();
+}
+
 void ge::Image::create_framebuffer(ge::RenderPass& render_pass, VkExtent2D extent)
 {
 	framebuffer = create_framebuffer(view, render_pass, extent);
@@ -146,4 +192,21 @@ VkFramebuffer ge::Image::create_framebuffer(VkImageView view, ge::RenderPass &re
 		throw std::runtime_error("failed to create framebuffer");
 
 	return framebuffer;
+}
+
+void ge::Image::barrier(CommandBuffer & buffer, VkImageLayout old, VkImageLayout newl, VkPipelineStageFlags src, VkPipelineStageFlags dst)
+{
+	VkImageMemoryBarrier b{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+	b.oldLayout = old;
+	b.newLayout = newl;
+	b.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	b.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	b.image = ptr;
+	b.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	b.subresourceRange.baseMipLevel = 0;
+	b.subresourceRange.levelCount = 1;
+	b.subresourceRange.baseArrayLayer = 0;
+	b.subresourceRange.layerCount = 1;
+
+	vkCmdPipelineBarrier(buffer.ptr, src, dst, 0, 0, nullptr, 0, nullptr, 1, &b);
 }

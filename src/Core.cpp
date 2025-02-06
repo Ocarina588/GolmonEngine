@@ -46,8 +46,9 @@ Core::Core(void)
 	gp.add_shader_stage(v.stage);
 	gp.add_shader_stage(f.stage);
 	gp.set_render_pass(render_pass);
-	gp.add_binding(Vertex::get_binding());
-	gp.add_attribute(Vertex::get_attribute());
+	gp.add_binding(ge::Vertex::get_binding());
+	for (auto i : ge::Vertex::get_attribute())
+		gp.add_attribute(i);
 	gp.add_layout(descriptors.layouts[0]);
 	gp.rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 	gp.init();

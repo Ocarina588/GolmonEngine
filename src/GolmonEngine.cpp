@@ -130,6 +130,7 @@ void ge::Mesh::load_from_glb(char const* file)
 	for (const tinygltf::Primitive& primitive : mesh.primitives) {
 		load_vertex_data(model, primitive);
 		load_index_data(model, primitive);
+		load_textures(model);
 	}
 
 }
@@ -141,25 +142,51 @@ void ge::Mesh::load_vertex_data(tinygltf::Model const& model, tinygltf::Primitiv
 		return;
 	}
 
+	// Load POSITION data
 	int posAccessorIndex = primitive.attributes.at("POSITION");
 	const tinygltf::Accessor& posAccessor = model.accessors[posAccessorIndex];
 	const tinygltf::BufferView& posBufferView = model.bufferViews[posAccessor.bufferView];
 	const tinygltf::Buffer& posBuffer = model.buffers[posBufferView.buffer];
 
 	const unsigned char* posData = posBuffer.data.data() + posBufferView.byteOffset + posAccessor.byteOffset;
+	size_t numVertices = posAccessor.count;
+	size_t posStride = (posAccessor.ByteStride(posBufferView) > 0) ? posAccessor.ByteStride(posBufferView) : sizeof(float) * 3;
+
+	bool hasUVs = primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end();
+	const unsigned char* uvData = nullptr;
+	size_t uvStride = 0;
+
+	if (hasUVs) {
+		int uvAccessorIndex = primitive.attributes.at("TEXCOORD_0");
+		const tinygltf::Accessor& uvAccessor = model.accessors[uvAccessorIndex];
+		const tinygltf::BufferView& uvBufferView = model.bufferViews[uvAccessor.bufferView];
+		const tinygltf::Buffer& uvBuffer = model.buffers[uvBufferView.buffer];
+
+		uvData = uvBuffer.data.data() + uvBufferView.byteOffset + uvAccessor.byteOffset;
+		uvStride = (uvAccessor.ByteStride(uvBufferView) > 0) ? uvAccessor.ByteStride(uvBufferView) : sizeof(float) * 2;
+	}
 
 	std::vector<float> vertices;
-	size_t numVertices = posAccessor.count;
-	size_t stride = (posAccessor.ByteStride(posBufferView) > 0) ? posAccessor.ByteStride(posBufferView) : sizeof(float) * 3;
-
 	for (size_t i = 0; i < numVertices; ++i) {
-		float x = *reinterpret_cast<const float*>(posData + i * stride);
-		float y = *reinterpret_cast<const float*>(posData + i * stride + sizeof(float));
-		float z = *reinterpret_cast<const float*>(posData + i * stride + 2 * sizeof(float));
+		float x = *reinterpret_cast<const float*>(posData + i * posStride);
+		float y = *reinterpret_cast<const float*>(posData + i * posStride + sizeof(float));
+		float z = *reinterpret_cast<const float*>(posData + i * posStride + 2 * sizeof(float));
 
 		vertices.push_back(x);
 		vertices.push_back(y);
 		vertices.push_back(z);
+
+		if (hasUVs) {
+			float u = *reinterpret_cast<const float*>(uvData + i * uvStride);
+			float v = *reinterpret_cast<const float*>(uvData + i * uvStride + sizeof(float));
+
+			vertices.push_back(u);
+			vertices.push_back(v);
+		}
+		else {
+			vertices.push_back(0.0f);
+			vertices.push_back(0.0f);
+		}
 	}
 
 	vertex_data.emplace_back();
@@ -205,6 +232,60 @@ void ge::Mesh::load_index_data(tinygltf::Model const& model, tinygltf::Primitive
 		(void *)indices.data(), (uint32_t)(sizeof(uint32_t) * indices.size()), VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 	);
+}
+
+void ge::Mesh::load_textures(tinygltf::Model const& model)
+{
+	for (const auto& material : model.materials) {
+		if (material.normalTexture.index >= 0) {
+			int textureIndex = material.normalTexture.index;
+			const tinygltf::Texture& texture = model.textures[textureIndex];
+
+			if (texture.source >= 0) {  // Get the corresponding image
+				const tinygltf::Image& image = model.images[texture.source];
+
+				std::cout << "Normal Map found: " << image.uri << std::endl;
+				std::cout << "Width: " << image.width << ", Height: " << image.height << std::endl;
+				std::cout << "Component Count: " << image.component << std::endl; // 3 (RGB) or 4 (RGBA)
+
+				// Access raw pixel data
+				const unsigned char* imageData = image.image.data();
+				size_t imageSize = image.image.size();  // Total bytes
+
+				if (!imageData || imageSize == 0) {
+					std::cerr << "Error: Normal map image data is empty!" << std::endl;
+					continue;
+				}
+
+				// Upload the texture to Vulkan
+				//normal.init_compressed(
+				//	co,
+				//	imageData, image.width * image.component,  // Corrected width calculation
+				//	VK_FORMAT_R8G8B8A8_SRGB,
+				//	VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+				//	VK_IMAGE_ASPECT_COLOR_BIT,
+				//	VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+				//);
+			}
+		}
+
+		if (material.pbrMetallicRoughness.baseColorTexture.index >= 0) { // Check if a base color texture exists
+			int textureIndex = material.pbrMetallicRoughness.baseColorTexture.index;
+			const tinygltf::Texture& texture = model.textures[textureIndex];
+
+			if (texture.source >= 0) { // Retrieve the image associated with this texture
+				const tinygltf::Image& image = model.images[texture.source];
+
+				std::cout << "Color Texture found: " << image.uri << std::endl;
+				std::cout << "Width: " << image.width << ", Height: " << image.height << std::endl;
+				std::cout << "Component Count: " << image.component << std::endl; // Usually 3 (RGB) or 4 (RGBA)
+
+				// Access the raw image data
+				const std::vector<unsigned char>& imageData = image.image;
+			}
+		}
+	}
+
 }
 
 void ge::Mesh::draw(ge::CommandBuffer& command_buffer)
