@@ -119,14 +119,12 @@ void ge::Mesh::load_from_glb(char const* file)
 		return;
 	}
 
-	// Get the first node
 	const tinygltf::Node& node = model.nodes[scene.nodes[0]];
 	if (node.mesh < 0) {
 		std::cerr << "First node does not contain a mesh." << std::endl;
 		return;
 	}
 
-	// Get the first mesh
 	const tinygltf::Mesh& mesh = model.meshes[node.mesh];
 
 	for (const tinygltf::Primitive& primitive : mesh.primitives) {
@@ -143,16 +141,13 @@ void ge::Mesh::load_vertex_data(tinygltf::Model const& model, tinygltf::Primitiv
 		return;
 	}
 
-	// Get the accessor
 	int posAccessorIndex = primitive.attributes.at("POSITION");
 	const tinygltf::Accessor& posAccessor = model.accessors[posAccessorIndex];
 	const tinygltf::BufferView& posBufferView = model.bufferViews[posAccessor.bufferView];
 	const tinygltf::Buffer& posBuffer = model.buffers[posBufferView.buffer];
 
-	// Get pointer to the raw data
 	const unsigned char* posData = posBuffer.data.data() + posBufferView.byteOffset + posAccessor.byteOffset;
 
-	// Read the vertex positions
 	std::vector<float> vertices;
 	size_t numVertices = posAccessor.count;
 	size_t stride = (posAccessor.ByteStride(posBufferView) > 0) ? posAccessor.ByteStride(posBufferView) : sizeof(float) * 3;
@@ -172,7 +167,6 @@ void ge::Mesh::load_vertex_data(tinygltf::Model const& model, tinygltf::Primitiv
 		vertices.data(), (uint32_t)(sizeof(float) * vertices.size()), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 	);
-	std::cout << "Extracted " << vertices.size() / 3 << " vertices." << std::endl;
 }
 
 void ge::Mesh::load_index_data(tinygltf::Model const& model, tinygltf::Primitive const& primitive)
@@ -182,12 +176,10 @@ void ge::Mesh::load_index_data(tinygltf::Model const& model, tinygltf::Primitive
 		return;
 	}
 
-	// Get the accessor
 	const tinygltf::Accessor& indexAccessor = model.accessors[primitive.indices];
 	const tinygltf::BufferView& indexBufferView = model.bufferViews[indexAccessor.bufferView];
 	const tinygltf::Buffer& indexBuffer = model.buffers[indexBufferView.buffer];
 
-	// Get pointer to the raw data
 	const unsigned char* indexData = indexBuffer.data.data() + indexBufferView.byteOffset + indexAccessor.byteOffset;
 
 	std::vector<uint32_t> indices;
@@ -213,8 +205,6 @@ void ge::Mesh::load_index_data(tinygltf::Model const& model, tinygltf::Primitive
 		(void *)indices.data(), (uint32_t)(sizeof(uint32_t) * indices.size()), VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 	);
-
-	std::cout << "Extracted " << indices.size() << " indices." << std::endl;
 }
 
 void ge::Mesh::draw(ge::CommandBuffer& command_buffer)
@@ -231,7 +221,7 @@ void ge::Mesh::draw(ge::CommandBuffer& command_buffer)
 	for (int i = 0; i < vertex_data.size(); i++) {
 		vkCmdBindVertexBuffers(command_buffer.ptr, 0, 1, &vertex_data[i].ptr, &offset);
 		vkCmdBindIndexBuffer(command_buffer.ptr, index_data[i].ptr, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(command_buffer.ptr, (uint32_t)index_data[i].size / sizeof(uint32_t), 1, 0, 0, 0);
+		vkCmdDrawIndexed(command_buffer.ptr, (uint32_t)index_data[i].original_size / sizeof(uint32_t), 1, 0, 0, 0);
 	}
 
 }

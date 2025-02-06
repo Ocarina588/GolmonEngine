@@ -100,7 +100,6 @@ std::vector<VkDeviceQueueCreateInfo> ge::Device::choose_queues(void)
 		s.insert(index.present);
 
 	std::vector<VkDeviceQueueCreateInfo> create_infos;
-	float priority = 1.f;
 
 	for (auto& i : s) {
 		create_infos.push_back({

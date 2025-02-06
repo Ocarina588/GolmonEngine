@@ -32,7 +32,6 @@ void Buffer::init(uint32_t _size, VkBufferUsageFlags usage, VkMemoryPropertyFlag
 		throw std::runtime_error("failed to alloc memory");
 
 	size = requirements.size;
-	std::cout << size << std::endl;
 	vkBindBufferMemory(ctx::device.ptr, ptr, memory, 0);
 
 	VkBufferDeviceAddressInfo address_info{ VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO };

@@ -57,6 +57,8 @@ namespace ge {
 
 		std::vector<char const*> _extensions;
 		uint32_t _gpu = 0;
+		float priority = 1.f;
+
 	};
 
 	VkMemoryRequirements get_memory_requirements(VkImage image);
