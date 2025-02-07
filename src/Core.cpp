@@ -30,7 +30,7 @@ Core::Core(void)
 	render_pass.init();
 
 	for (auto& i : ge::ctx::window.images)
-		i.create_framebuffer(render_pass);
+		i.create_framebuffer(render_pass);;
 
 	ge::Assets::load_glb("models/DamagedHelmet.glb");
 	ge::Assets::init_materials(command_buffer);
@@ -39,13 +39,19 @@ Core::Core(void)
 
 	descriptors.add_set(1)
 		.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)				// camera
-		.add_binding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)	// normal map
-		.add_binding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);	// color
+		.add_binding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)	// albedo
+		.add_binding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)	// normal
+		.add_binding(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)	// metallic
+		.add_binding(4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)	// emissive
+		.add_binding(5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);	// occlusion
 	descriptors.init();
 
 	descriptors.add_write(0, 0, 0, camera);
-	descriptors.add_write(0, 0, 1, ge::Assets::materials[0].normal, VK_IMAGE_LAYOUT_GENERAL, sampler);
-	descriptors.add_write(0, 0, 2, ge::Assets::materials[0].color, VK_IMAGE_LAYOUT_GENERAL, sampler);
+	descriptors.add_write(0, 0, 1, ge::Assets::materials[0].albedo,		VK_IMAGE_LAYOUT_GENERAL, sampler);
+	descriptors.add_write(0, 0, 2, ge::Assets::materials[0].normal,		VK_IMAGE_LAYOUT_GENERAL, sampler);
+	descriptors.add_write(0, 0, 3, ge::Assets::materials[0].metallic,	VK_IMAGE_LAYOUT_GENERAL, sampler);
+	descriptors.add_write(0, 0, 4, ge::Assets::materials[0].emissive,	VK_IMAGE_LAYOUT_GENERAL, sampler);
+	descriptors.add_write(0, 0, 5, ge::Assets::materials[0].occlusion,	VK_IMAGE_LAYOUT_GENERAL, sampler);
 	descriptors.write();
 
 	ge::Shader v("shaders/vertex.spv", VK_SHADER_STAGE_VERTEX_BIT);

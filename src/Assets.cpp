@@ -121,6 +121,22 @@ void ge::Assets::load_vertex_data(Mesh::ptr m, tinygltf::Model const& model, tin
 	size_t numVertices = posAccessor.count;
 	size_t posStride = (posAccessor.ByteStride(posBufferView) > 0) ? posAccessor.ByteStride(posBufferView) : sizeof(float) * 3;
 
+	// Check if normals exist
+	bool hasNormals = primitive.attributes.find("NORMAL") != primitive.attributes.end();
+	const unsigned char* normalData = nullptr;
+	size_t normalStride = 0;
+
+	if (hasNormals) {
+		int normalAccessorIndex = primitive.attributes.at("NORMAL");
+		const tinygltf::Accessor& normalAccessor = model.accessors[normalAccessorIndex];
+		const tinygltf::BufferView& normalBufferView = model.bufferViews[normalAccessor.bufferView];
+		const tinygltf::Buffer& normalBuffer = model.buffers[normalBufferView.buffer];
+
+		normalData = normalBuffer.data.data() + normalBufferView.byteOffset + normalAccessor.byteOffset;
+		normalStride = (normalAccessor.ByteStride(normalBufferView) > 0) ? normalAccessor.ByteStride(normalBufferView) : sizeof(float) * 3;
+	}
+
+	// Check if UVs exist
 	bool hasUVs = primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end();
 	const unsigned char* uvData = nullptr;
 	size_t uvStride = 0;
@@ -137,6 +153,7 @@ void ge::Assets::load_vertex_data(Mesh::ptr m, tinygltf::Model const& model, tin
 
 	std::vector<float> vertices;
 	for (size_t i = 0; i < numVertices; ++i) {
+		// Read Position
 		float x = *reinterpret_cast<const float*>(posData + i * posStride);
 		float y = *reinterpret_cast<const float*>(posData + i * posStride + sizeof(float));
 		float z = *reinterpret_cast<const float*>(posData + i * posStride + 2 * sizeof(float));
@@ -145,6 +162,23 @@ void ge::Assets::load_vertex_data(Mesh::ptr m, tinygltf::Model const& model, tin
 		vertices.push_back(y);
 		vertices.push_back(z);
 
+		// Read Normal (if available, otherwise set to (0,0,1))
+		if (hasNormals) {
+			float nx = *reinterpret_cast<const float*>(normalData + i * normalStride);
+			float ny = *reinterpret_cast<const float*>(normalData + i * normalStride + sizeof(float));
+			float nz = *reinterpret_cast<const float*>(normalData + i * normalStride + 2 * sizeof(float));
+
+			vertices.push_back(nx);
+			vertices.push_back(ny);
+			vertices.push_back(nz);
+		}
+		else {
+			vertices.push_back(0.0f); // Default normal (0,0,1)
+			vertices.push_back(0.0f);
+			vertices.push_back(1.0f);
+		}
+
+		// Read UV (if available, otherwise set to (0,0))
 		if (hasUVs) {
 			float u = *reinterpret_cast<const float*>(uvData + i * uvStride);
 			float v = *reinterpret_cast<const float*>(uvData + i * uvStride + sizeof(float));
@@ -163,6 +197,7 @@ void ge::Assets::load_vertex_data(Mesh::ptr m, tinygltf::Model const& model, tin
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 	);
 }
+
 
 void ge::Assets::load_index_data(Mesh::ptr m, tinygltf::Model const& model, tinygltf::Primitive const& primitive)
 {
@@ -201,132 +236,93 @@ void ge::Assets::load_index_data(Mesh::ptr m, tinygltf::Model const& model, tiny
 	);
 }
 
+void PrintTextureType(const tinygltf::Model& model) {
+	for (size_t i = 0; i < model.materials.size(); ++i) {
+		const tinygltf::Material& material = model.materials[i];
+		std::cout << "Material " << i << ": " << material.name << std::endl;
 
+		// Check if the material has an albedo texture
+		if (material.pbrMetallicRoughness.baseColorTexture.index != -1) {
+			int textureIndex = material.pbrMetallicRoughness.baseColorTexture.index;
+			std::cout << "  - Albedo: Texture " << textureIndex << " ("
+				<< model.textures[textureIndex].name << ")\n";
+		}
+
+		// Check if the material has a metallic-roughness texture
+		if (material.pbrMetallicRoughness.metallicRoughnessTexture.index != -1) {
+			int textureIndex = material.pbrMetallicRoughness.metallicRoughnessTexture.index;
+			std::cout << "  - Metallic-Roughness: Texture " << textureIndex << " ("
+				<< model.textures[textureIndex].name << ")\n";
+		}
+
+		// Check if the material has a normal texture
+		if (material.normalTexture.index != -1) {
+			int textureIndex = material.normalTexture.index;
+			std::cout << "  - Normal: Texture " << textureIndex << " ("
+				<< model.textures[textureIndex].name << ")\n";
+		}
+
+		// Check if the material has an occlusion texture
+		if (material.occlusionTexture.index != -1) {
+			int textureIndex = material.occlusionTexture.index;
+			std::cout << "  - Occlusion: Texture " << textureIndex << " ("
+				<< model.textures[textureIndex].name << ")\n";
+		}
+
+		// Check if the material has an emissive texture
+		if (material.emissiveTexture.index != -1) {
+			int textureIndex = material.emissiveTexture.index;
+			std::cout << "  - Emissive: Texture " << textureIndex << " ("
+				<< model.textures[textureIndex].name << ")\n";
+		}
+	}
+}
 void ge::Assets::init_materials(ge::CommandBuffer &co)
 {
 	materials.resize(to_be_loaded.size());
 
 	for (int i = 0; i < to_be_loaded.size(); i++) {
 		auto& model = to_be_loaded[i];
+		PrintTextureType(model);
 		for (const auto& material : model.materials) {
-			if (material.normalTexture.index >= 0) {
-				int textureIndex = material.normalTexture.index;
-				const tinygltf::Texture& texture = model.textures[textureIndex];
-
-				if (texture.source >= 0) {  // Get the corresponding image
-					const tinygltf::Image& image = model.images[texture.source];
-
-					std::cout << "Normal Map found: " << image.uri << std::endl;
-					std::cout << "Width: " << image.width << ", Height: " << image.height << std::endl;
-					std::cout << "Component Count: " << image.component << std::endl; // 3 (RGB) or 4 (RGBA)
-
-					// Access raw pixel data
-					const unsigned char* imageData = image.image.data();
-					size_t imageSize = image.image.size();  // Total bytes
-
-					if (!imageData || imageSize == 0) {
-						std::cerr << "Error: Normal map image data is empty!" << std::endl;
-						continue;
-					}
-
-					// Upload the texture to Vulkan
-					materials[i].normal.init_raw(
-						co,
-						image.image.data(), image.width, image.height, image.image.size(),  // Corrected width calculation
-						VK_FORMAT_R8G8B8A8_SRGB,
-						VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-						VK_IMAGE_ASPECT_COLOR_BIT,
-						VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-					);
-				}
-			}
-
-			if (material.pbrMetallicRoughness.baseColorTexture.index >= 0) { // Check if a base color texture exists
-				int textureIndex = material.pbrMetallicRoughness.baseColorTexture.index;
-				const tinygltf::Texture& texture = model.textures[textureIndex];
-
-				if (texture.source >= 0) { // Retrieve the image associated with this texture
-					const tinygltf::Image& image = model.images[texture.source];
-
-					std::cout << "Color Texture found: " << image.uri << std::endl;
-					std::cout << "Width: " << image.width << ", Height: " << image.height << std::endl;
-					std::cout << "Component Count: " << image.component << std::endl; // Usually 3 (RGB) or 4 (RGBA)
-
-					// Access the raw image data
-
-					if (!image.image.data() || image.image.size() == 0) {
-						std::cerr << "Error: Color map image data is empty!" << std::endl;
-						continue;
-					}
-
-					materials[i].color.init_raw(
-						co,
-						image.image.data(), image.width, image.height, image.image.size(),  // Corrected width calculation
-						VK_FORMAT_R8G8B8A8_SRGB,
-						VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-						VK_IMAGE_ASPECT_COLOR_BIT,
-						VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-					);
-					std::cout << "nice" << std::endl;
-				}
-			}
+			if (material.normalTexture.index >= 0)
+				load_gltf_texture(model, co, materials[i].normal, material.normalTexture.index);
+			if (material.pbrMetallicRoughness.baseColorTexture.index >= 0)
+				load_gltf_texture(model, co, materials[i].albedo, material.pbrMetallicRoughness.baseColorTexture.index);
+			if (material.pbrMetallicRoughness.metallicRoughnessTexture.index >= 0)
+				load_gltf_texture(model, co, materials[i].metallic, material.pbrMetallicRoughness.metallicRoughnessTexture.index);
+			if (material.occlusionTexture.index >= 0)
+				load_gltf_texture(model, co, materials[i].occlusion, material.occlusionTexture.index);
+			if (material.emissiveTexture.index >= 0)
+				load_gltf_texture(model, co, materials[i].emissive, material.emissiveTexture.index);
 		}
 	}
 }
 
-//void ge::Mesh::load_textures(tinygltf::Model const& model)
-//{
-//	for (const auto& material : model.materials) {
-//		if (material.normalTexture.index >= 0) {
-//			int textureIndex = material.normalTexture.index;
-//			const tinygltf::Texture& texture = model.textures[textureIndex];
-//
-//			if (texture.source >= 0) {  // Get the corresponding image
-//				const tinygltf::Image& image = model.images[texture.source];
-//
-//				std::cout << "Normal Map found: " << image.uri << std::endl;
-//				std::cout << "Width: " << image.width << ", Height: " << image.height << std::endl;
-//				std::cout << "Component Count: " << image.component << std::endl; // 3 (RGB) or 4 (RGBA)
-//
-//				// Access raw pixel data
-//				const unsigned char* imageData = image.image.data();
-//				size_t imageSize = image.image.size();  // Total bytes
-//
-//				if (!imageData || imageSize == 0) {
-//					std::cerr << "Error: Normal map image data is empty!" << std::endl;
-//					continue;
-//				}
-//
-//				// Upload the texture to Vulkan
-//				//normal.init_compressed(
-//				//	co,
-//				//	imageData, image.width * image.component,  // Corrected width calculation
-//				//	VK_FORMAT_R8G8B8A8_SRGB,
-//				//	VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-//				//	VK_IMAGE_ASPECT_COLOR_BIT,
-//				//	VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-//				//);
-//			}
-//		}
-//
-//		if (material.pbrMetallicRoughness.baseColorTexture.index >= 0) { // Check if a base color texture exists
-//			int textureIndex = material.pbrMetallicRoughness.baseColorTexture.index;
-//			const tinygltf::Texture& texture = model.textures[textureIndex];
-//
-//			if (texture.source >= 0) { // Retrieve the image associated with this texture
-//				const tinygltf::Image& image = model.images[texture.source];
-//
-//				std::cout << "Color Texture found: " << image.uri << std::endl;
-//				std::cout << "Width: " << image.width << ", Height: " << image.height << std::endl;
-//				std::cout << "Component Count: " << image.component << std::endl; // Usually 3 (RGB) or 4 (RGBA)
-//
-//				// Access the raw image data
-//				const std::vector<unsigned char>& imageData = image.image;
-//			}
-//		}
-//	}
-//
-//}
+void ge::Assets::load_gltf_texture(tinygltf::Model const& model, ge::CommandBuffer &co, ge::Image &m, int id)
+{
+	const tinygltf::Texture& texture = model.textures[id];
+
+	if (texture.source < 0) 
+		throw std::runtime_error("Error: image data source error!");
+
+	const tinygltf::Image& image = model.images[texture.source];
+
+	std::cout << "Width: " << image.width << ", Height: " << image.height << std::endl;
+	std::cout << "Component Count: " << image.component << std::endl; // 3 (RGB) or 4 (RGBA)
+
+	if (!image.image.data() || image.image.size() == 0)
+		throw std::runtime_error("Error: Color map image data is empty!");
+
+	m.init_raw(
+		co,
+		image.image.data(), image.width, image.height, (uint32_t)image.image.size(),  // Corrected width calculation
+		VK_FORMAT_R8G8B8A8_SRGB,
+		VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		VK_IMAGE_ASPECT_COLOR_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+	);
+}
 
 void ge::Mesh::draw(ge::CommandBuffer& command_buffer)
 {

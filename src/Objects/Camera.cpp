@@ -28,12 +28,17 @@ void ge::Camera::init(void)
 
 void ge::Camera::update(void)
 {
+	static glm::vec3 light_direction = { -1.f, -1.f, -1.f };
 	direction = glm::normalize(target - pos);
 	right = glm::normalize(glm::cross(world_up, direction));
 
+	light_direction = rotate_around_point(light_direction, target, { 0.f, 1.f, 0.f }, -(float)1 * ge::ctx::window.dt * glm::radians(90.f));
+
+	ubo.light_direction = light_direction;
 	ubo.view = glm::lookAt(pos, target, world_up);
 	ubo.model = glm::mat4(1.f);
 	ubo.model = glm::rotate(ubo.model, glm::radians(90.f), glm::vec3(1.f, 0.f, 0.f));
+	//ge::Camera::rotate_around_point(ubo.light_direction)
 
 	buffer.memcpy(&ubo, sizeof(ge::UBO));
 }

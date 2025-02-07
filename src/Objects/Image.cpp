@@ -86,8 +86,7 @@ void ge::Image::init_raw(ge::CommandBuffer& co, void const* data, uint32_t x, ui
 	vkCmdCopyBufferToImage(co.ptr, stagin_buffer.ptr, ptr, VK_IMAGE_LAYOUT_GENERAL, 1, &region);
 
 	co.end();
-	ge::Fence f;
-	f.init(false);
+	ge::Fence f(false);
 	co.submit(nullptr, nullptr, f);
 	f.wait();
 }
