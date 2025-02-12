@@ -10,7 +10,8 @@ namespace ge {
 		glm::mat4 model;
 		glm::mat4 view;
 		glm::mat4 proj;
-		glm::vec3 light_direction; // temporal, to be removed
+		glm::vec3 light_pos; // temporal, to be removed
+		glm::vec3 view_pos;
 	};
 
 	class Camera {

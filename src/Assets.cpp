@@ -95,8 +95,21 @@ void ge::Assets::load_glb(char const* file)
 	Mesh::ptr m = std::make_shared<Mesh>();
 
 	for (const tinygltf::Primitive& primitive : mesh.primitives) {
-		load_vertex_data(m, model, primitive);
-		load_index_data(m, model, primitive);
+		auto v_data = load_vertex_data(m, model, primitive);
+		auto i_data = load_index_data(m, model, primitive);
+
+		std::cout << i_data.size() << " " << v_data.size() << " " << v_data.size() / 11 << std::endl;
+		compute_tangent(reinterpret_cast<Vertex*>(v_data.data()), i_data);
+
+		m->vertex_data.init(
+			v_data.data(), (uint32_t)(sizeof(float) * v_data.size()), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+		);
+
+		m->index_data.init(
+			(void*)i_data.data(), (uint32_t)(sizeof(uint32_t) * i_data.size()), VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+		);
 	}
 
 	m->material_id = (uint32_t)to_be_loaded.size();
@@ -104,11 +117,11 @@ void ge::Assets::load_glb(char const* file)
 	meshes[file] = m;
 }
 
-void ge::Assets::load_vertex_data(Mesh::ptr m, tinygltf::Model const& model, tinygltf::Primitive const& primitive)
+std::vector<float> ge::Assets::load_vertex_data(Mesh::ptr m, tinygltf::Model const& model, tinygltf::Primitive const& primitive)
 {
 	if (primitive.attributes.find("POSITION") == primitive.attributes.end()) {
 		std::cerr << "Primitive does not contain vertex positions." << std::endl;
-		return;
+		return {};
 	}
 
 	// Load POSITION data
@@ -177,7 +190,10 @@ void ge::Assets::load_vertex_data(Mesh::ptr m, tinygltf::Model const& model, tin
 			vertices.push_back(0.0f);
 			vertices.push_back(1.0f);
 		}
-
+		//TANGENT
+		vertices.push_back(0.0f);
+		vertices.push_back(0.0f);
+		vertices.push_back(0.0f);
 		// Read UV (if available, otherwise set to (0,0))
 		if (hasUVs) {
 			float u = *reinterpret_cast<const float*>(uvData + i * uvStride);
@@ -192,18 +208,84 @@ void ge::Assets::load_vertex_data(Mesh::ptr m, tinygltf::Model const& model, tin
 		}
 	}
 
-	m->vertex_data.init(
-		vertices.data(), (uint32_t)(sizeof(float) * vertices.size()), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-	);
+	return vertices;
 }
 
+void ge::Assets::compute_tangent(Vertex *p, std::vector<uint32_t> const &indices)
+{
+	for (int i = 0; i < indices.size(); i+=3) {
 
-void ge::Assets::load_index_data(Mesh::ptr m, tinygltf::Model const& model, tinygltf::Primitive const& primitive)
+		//my version
+		/*
+		Vertex& A = p[indices[i]];
+		Vertex& B = p[indices[i + 1]];
+		Vertex& C = p[indices[i + 2]];
+
+		glm::vec3 E1 = B.pos - A.pos;
+		glm::vec3 E2 = C.pos - A.pos;
+		glm::vec2 L1 = B.uv - A.uv;
+		glm::vec2 L2 = C.uv - A.uv;
+
+		glm::mat2 inv = glm::inverse(glm::mat2(L1.x, L1.y, L2.x, L2.y));
+		
+		glm::vec3 tangent;
+
+		tangent.x = inv[0].x * E1.x + inv[0].y * E2.x;
+		tangent.y = inv[0].x * E1.y + inv[0].y * E2.y;
+		tangent.z = inv[0].x * E1.z + inv[0].y * E2.z;
+
+		// Store them
+		A.tangent += tangent;
+		B.tangent += tangent;
+		C.tangent += tangent; 
+		*/
+		//OGLDEV VERSION
+
+	//	/*
+		Vertex& v0 = p[indices[i]];
+		Vertex& v1 = p[indices[i + 1]];
+		Vertex& v2 = p[indices[i + 2]];
+
+		glm::vec3 Edge1 = v1.pos - v0.pos;
+		glm::vec3 Edge2 = v2.pos - v0.pos;
+
+		float DeltaU1 = v1.uv.x - v0.uv.x;
+		float DeltaV1 = v1.uv.y - v0.uv.y;
+		float DeltaU2 = v2.uv.x - v0.uv.x;
+		float DeltaV2 = v2.uv.y - v0.uv.y;
+
+		float f = 1.0f / (DeltaU1 * DeltaV2 - DeltaU2 * DeltaV1);
+
+		glm::vec3 tangent;
+
+		tangent.x = f * (DeltaV2 * Edge1.x - DeltaV1 * Edge2.x);
+		tangent.y = f * (DeltaV2 * Edge1.y - DeltaV1 * Edge2.y);
+		tangent.z = f * (DeltaV2 * Edge1.z - DeltaV1 * Edge2.z);
+
+
+		// Store them
+		v0.tangent += tangent;
+		v1.tangent += tangent;
+		v2.tangent += tangent; 
+		//*/
+	}
+
+	for (int i = 0; i < indices.size(); i += 3) {
+		Vertex& A = p[indices[i]];
+		Vertex& B = p[indices[i + 1]];
+		Vertex& C = p[indices[i + 2]];
+
+		A.tangent = glm::normalize(A.tangent);
+		B.tangent = glm::normalize(B.tangent);
+		C.tangent = glm::normalize(C.tangent);
+	}
+}
+
+std::vector<uint32_t> ge::Assets::load_index_data(Mesh::ptr m, tinygltf::Model const& model, tinygltf::Primitive const& primitive)
 {
 	if (primitive.indices < 0) {
 		std::cerr << "Primitive does not contain indices." << std::endl;
-		return;
+		return {};
 	}
 
 	const tinygltf::Accessor& indexAccessor = model.accessors[primitive.indices];
@@ -229,11 +311,7 @@ void ge::Assets::load_index_data(Mesh::ptr m, tinygltf::Model const& model, tiny
 		}
 		indices.push_back(index);
 	}
-
-	m->index_data.init(
-		(void *)indices.data(), (uint32_t)(sizeof(uint32_t) * indices.size()), VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-	);
+	return indices;
 }
 
 void PrintTextureType(const tinygltf::Model& model) {

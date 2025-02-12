@@ -14,6 +14,7 @@ namespace ge {
 	struct Vertex {
 		glm::vec3 pos;
 		glm::vec3 normal;
+		glm::vec3 tangent; 
 		glm::vec2 uv;
 
 		static VkVertexInputBindingDescription get_binding(void)
@@ -28,7 +29,7 @@ namespace ge {
 		}
 		static std::vector<VkVertexInputAttributeDescription> get_attribute(void)
 		{
-			std::vector<VkVertexInputAttributeDescription> attributes(3);
+			std::vector<VkVertexInputAttributeDescription> attributes(4);
 
 			attributes[0].binding = 0;
 			attributes[0].location = 0;
@@ -42,8 +43,13 @@ namespace ge {
 
 			attributes[2].binding = 0;
 			attributes[2].location = 2;
-			attributes[2].offset = offsetof(Vertex, uv);
-			attributes[2].format = VK_FORMAT_R32G32_SFLOAT;
+			attributes[2].offset = offsetof(Vertex, tangent);
+			attributes[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+
+			attributes[3].binding = 0;
+			attributes[3].location = 3;
+			attributes[3].offset = offsetof(Vertex, uv);
+			attributes[3].format = VK_FORMAT_R32G32_SFLOAT;
 
 			return attributes;
 		}
@@ -106,9 +112,10 @@ namespace ge {
 		
 		static std::vector<tinygltf::Model> to_be_loaded;
 
+		static void compute_tangent(Vertex* p, std::vector<uint32_t> const& indices);
 		static void load_gltf_texture(tinygltf::Model const& model, ge::CommandBuffer& co, ge::Image& m, int id);
-		static void load_vertex_data(Mesh::ptr m, tinygltf::Model const& model, tinygltf::Primitive const& primitive);
-		static void load_index_data(Mesh::ptr m, tinygltf::Model const& model, tinygltf::Primitive const& primitive);
+		static std::vector<float> load_vertex_data(Mesh::ptr m, tinygltf::Model const& model, tinygltf::Primitive const& primitive);
+		static std::vector<uint32_t> load_index_data(Mesh::ptr m, tinygltf::Model const& model, tinygltf::Primitive const& primitive);
 	};
 
 }
