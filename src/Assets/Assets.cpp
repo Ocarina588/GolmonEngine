@@ -4,6 +4,76 @@
 
 #include "GolmonEngine.hpp"
 
+// MIKKSTPACE
+
+#include "Assets/mikktspace.h"
+
+struct mikktspace_data {
+	ge::Vertex* vertices = nullptr;
+	uint32_t* indices = nullptr;
+	size_t size = 0;
+};
+
+
+// MikkTSpace callbacks
+static int getNumFaces(const SMikkTSpaceContext* pContext) {
+	mikktspace_data* mesh = (mikktspace_data*)pContext->m_pUserData;
+	return mesh->size / 3; // Assuming a triangle mesh
+}
+
+static int getNumVerticesOfFace(const SMikkTSpaceContext* pContext, int iFace) {
+	return 3; // glTF uses triangles
+}
+
+static void getPosition(const SMikkTSpaceContext* pContext, float fvPosOut[], int iFace, int iVert) {
+	mikktspace_data* mesh = (mikktspace_data*)pContext->m_pUserData;
+	uint32_t index = mesh->indices[iFace * 3 + iVert];
+	glm::vec3 pos = mesh->vertices[index].pos;
+	fvPosOut[0] = pos.x;
+	fvPosOut[1] = pos.y;
+	fvPosOut[2] = pos.z;
+}
+
+static void getNormal(const SMikkTSpaceContext* pContext, float fvNormOut[], int iFace, int iVert) {
+	mikktspace_data* mesh = (mikktspace_data*)pContext->m_pUserData;
+	uint32_t index = mesh->indices[iFace * 3 + iVert];
+	glm::vec3 norm = mesh->vertices[index].normal;
+	fvNormOut[0] = norm.x;
+	fvNormOut[1] = norm.y;
+	fvNormOut[2] = norm.z;
+}
+
+static void getTexCoord(const SMikkTSpaceContext* pContext, float fvTexcOut[], int iFace, int iVert) {
+	mikktspace_data* mesh = (mikktspace_data*)pContext->m_pUserData;
+	uint32_t index = mesh->indices[iFace * 3 + iVert];
+	glm::vec2 uv = mesh->vertices[index].uv;
+	fvTexcOut[0] = uv.x;
+	fvTexcOut[1] = uv.y;
+}
+
+static void setTSpaceBasic(const SMikkTSpaceContext* pContext, const float fvTangent[], float fSign, int iFace, int iVert) {
+	mikktspace_data* mesh = (mikktspace_data*)pContext->m_pUserData;
+	uint32_t index = mesh->indices[iFace * 3 + iVert];
+	mesh->vertices[index].tangent = glm::vec3(fvTangent[0], fvTangent[1], fvTangent[2]);
+	mesh->vertices[index].bitangent = glm::normalize(glm::cross(mesh->vertices[index].normal, glm::vec3(mesh->vertices[index].tangent)) * fSign);
+}
+
+void generateTangents(mikktspace_data& mesh) {
+
+	SMikkTSpaceInterface iface = {};
+	iface.m_getNumFaces = getNumFaces;
+	iface.m_getNumVerticesOfFace = getNumVerticesOfFace;
+	iface.m_getPosition = getPosition;
+	iface.m_getNormal = getNormal;
+	iface.m_getTexCoord = getTexCoord;
+	iface.m_setTSpaceBasic = setTSpaceBasic;
+
+	SMikkTSpaceContext context = {};
+	context.m_pInterface = &iface;
+	context.m_pUserData = &mesh;
+
+	genTangSpaceDefault(&context); // Run the algorithm
+}
 
 std::unordered_map<std::string, ge::Mesh::ptr> ge::Assets::meshes;
 std::vector<ge::Assets::material> ge::Assets::materials;
@@ -84,7 +154,7 @@ void ge::Assets::load_glb(char const* file)
 		std::cerr << "No nodes found in the scene." << std::endl;
 		return;
 	}
-
+	std::cout << "nodes : " << model.nodes.size() << std::endl;
 	const tinygltf::Node& node = model.nodes[scene.nodes[0]];
 	if (node.mesh < 0) {
 		std::cerr << "First node does not contain a mesh." << std::endl;
@@ -93,13 +163,23 @@ void ge::Assets::load_glb(char const* file)
 
 	const tinygltf::Mesh& mesh = model.meshes[node.mesh];
 	Mesh::ptr m = std::make_shared<Mesh>();
+	
+	std::cout << "primitives: " << mesh.primitives.size() << std::endl;
 
 	for (const tinygltf::Primitive& primitive : mesh.primitives) {
 		auto v_data = load_vertex_data(m, model, primitive);
 		auto i_data = load_index_data(m, model, primitive);
 
 		std::cout << i_data.size() << " " << v_data.size() << " " << v_data.size() / 11 << std::endl;
-		compute_tangent(reinterpret_cast<Vertex*>(v_data.data()), i_data);
+		if (primitive.attributes.find("TANGENT") == primitive.attributes.end()) {
+			std::cout << "No tangent data found, computing it myself then" << std::endl;
+			mikktspace_data tmp;
+			tmp.indices = i_data.data();
+			tmp.vertices = reinterpret_cast<ge::Vertex*>(v_data.data());
+			tmp.size = i_data.size();
+			generateTangents(tmp);
+			//compute_tangent(reinterpret_cast<Vertex*>(v_data.data()), i_data);
+		}
 
 		m->vertex_data.init(
 			v_data.data(), (uint32_t)(sizeof(float) * v_data.size()), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
@@ -149,11 +229,25 @@ std::vector<float> ge::Assets::load_vertex_data(Mesh::ptr m, tinygltf::Model con
 		normalStride = (normalAccessor.ByteStride(normalBufferView) > 0) ? normalAccessor.ByteStride(normalBufferView) : sizeof(float) * 3;
 	}
 
+	// Check if Tangent exist
+	bool hasTangent = primitive.attributes.find("TANGENT") != primitive.attributes.end();
+	const unsigned char* tangentData = nullptr;
+	size_t tangentStride = 0;
+
+	if (hasTangent) {
+		int tangentAccessorIndex = primitive.attributes.at("TANGENT");
+		const tinygltf::Accessor& tangentAccessor = model.accessors[tangentAccessorIndex];
+		const tinygltf::BufferView& tangentBufferView = model.bufferViews[tangentAccessor.bufferView];
+		const tinygltf::Buffer& tangentBuffer = model.buffers[tangentBufferView.buffer];
+
+		tangentData = tangentBuffer.data.data() + tangentBufferView.byteOffset + tangentAccessor.byteOffset;
+		tangentStride = (tangentAccessor.ByteStride(tangentBufferView) > 0) ? tangentAccessor.ByteStride(tangentBufferView) : sizeof(float) * 3;
+	}
+
 	// Check if UVs exist
 	bool hasUVs = primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end();
 	const unsigned char* uvData = nullptr;
 	size_t uvStride = 0;
-
 	if (hasUVs) {
 		int uvAccessorIndex = primitive.attributes.at("TEXCOORD_0");
 		const tinygltf::Accessor& uvAccessor = model.accessors[uvAccessorIndex];
@@ -163,6 +257,7 @@ std::vector<float> ge::Assets::load_vertex_data(Mesh::ptr m, tinygltf::Model con
 		uvData = uvBuffer.data.data() + uvBufferView.byteOffset + uvAccessor.byteOffset;
 		uvStride = (uvAccessor.ByteStride(uvBufferView) > 0) ? uvAccessor.ByteStride(uvBufferView) : sizeof(float) * 2;
 	}
+
 
 	std::vector<float> vertices;
 	for (size_t i = 0; i < numVertices; ++i) {
@@ -179,18 +274,34 @@ std::vector<float> ge::Assets::load_vertex_data(Mesh::ptr m, tinygltf::Model con
 		if (hasNormals) {
 			float nx = *reinterpret_cast<const float*>(normalData + i * normalStride);
 			float ny = *reinterpret_cast<const float*>(normalData + i * normalStride + sizeof(float));
-			float nz = *reinterpret_cast<const float*>(normalData + i * normalStride + 2 * sizeof(float));
+			float nz = *reinterpret_cast<const float*>(normalData + i * normalStride + 2 * sizeof(float)); 
 
 			vertices.push_back(nx);
 			vertices.push_back(ny);
-			vertices.push_back(nz);
+			vertices.push_back(nz); 
 		}
 		else {
 			vertices.push_back(0.0f); // Default normal (0,0,1)
+			vertices.push_back(0.0f); 
 			vertices.push_back(0.0f);
-			vertices.push_back(1.0f);
 		}
 		//TANGENT
+		if (hasTangent) {
+			float nx = *reinterpret_cast<const float*>(tangentData + i * tangentStride);
+			float ny = *reinterpret_cast<const float*>(tangentData + i * tangentStride + sizeof(float));
+			float nz = *reinterpret_cast<const float*>(tangentData + i * tangentStride + 2 * sizeof(float));
+
+			vertices.push_back(nx);
+			vertices.push_back(ny);
+			vertices.push_back(nz); 
+		}
+		else {
+			vertices.push_back(0.0f); // Default normal (0,0,1)
+			vertices.push_back(0.0f); 
+			vertices.push_back(1.0f);
+		}
+
+		//BITANGENT
 		vertices.push_back(0.0f);
 		vertices.push_back(0.0f);
 		vertices.push_back(0.0f);
@@ -242,6 +353,8 @@ void ge::Assets::compute_tangent(Vertex *p, std::vector<uint32_t> const &indices
 		//OGLDEV VERSION
 
 	//	/*
+
+		/*
 		Vertex& v0 = p[indices[i]];
 		Vertex& v1 = p[indices[i + 1]];
 		Vertex& v2 = p[indices[i + 2]];
@@ -256,7 +369,7 @@ void ge::Assets::compute_tangent(Vertex *p, std::vector<uint32_t> const &indices
 
 		float f = 1.0f / (DeltaU1 * DeltaV2 - DeltaU2 * DeltaV1);
 
-		glm::vec3 tangent;
+		glm::vec4 tangent;
 
 		tangent.x = f * (DeltaV2 * Edge1.x - DeltaV1 * Edge2.x);
 		tangent.y = f * (DeltaV2 * Edge1.y - DeltaV1 * Edge2.y);
@@ -267,6 +380,8 @@ void ge::Assets::compute_tangent(Vertex *p, std::vector<uint32_t> const &indices
 		v0.tangent += tangent;
 		v1.tangent += tangent;
 		v2.tangent += tangent; 
+
+		*/
 		//*/
 	}
 
@@ -395,7 +510,7 @@ void ge::Assets::load_gltf_texture(tinygltf::Model const& model, ge::CommandBuff
 	m.init_raw(
 		co,
 		image.image.data(), image.width, image.height, (uint32_t)image.image.size(),  // Corrected width calculation
-		VK_FORMAT_R8G8B8A8_SRGB,
+		VK_FORMAT_R8G8B8A8_UNORM,
 		VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 		VK_IMAGE_ASPECT_COLOR_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
@@ -426,3 +541,4 @@ stbi_uc* ge::Assets::load_from_memory(stbi_uc const* buffer, int len, int* x, in
 {
 	return stbi_load_from_memory(buffer, len, x, y, comp, req_comp);
 }
+

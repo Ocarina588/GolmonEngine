@@ -15,6 +15,7 @@ namespace ge {
 		glm::vec3 pos;
 		glm::vec3 normal;
 		glm::vec3 tangent; 
+		glm::vec3 bitangent;
 		glm::vec2 uv;
 
 		static VkVertexInputBindingDescription get_binding(void)
@@ -29,7 +30,7 @@ namespace ge {
 		}
 		static std::vector<VkVertexInputAttributeDescription> get_attribute(void)
 		{
-			std::vector<VkVertexInputAttributeDescription> attributes(4);
+			std::vector<VkVertexInputAttributeDescription> attributes(5);
 
 			attributes[0].binding = 0;
 			attributes[0].location = 0;
@@ -48,8 +49,13 @@ namespace ge {
 
 			attributes[3].binding = 0;
 			attributes[3].location = 3;
-			attributes[3].offset = offsetof(Vertex, uv);
-			attributes[3].format = VK_FORMAT_R32G32_SFLOAT;
+			attributes[3].offset = offsetof(Vertex, bitangent);
+			attributes[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+
+			attributes[4].binding = 0;
+			attributes[4].location = 4;
+			attributes[4].offset = offsetof(Vertex, uv);
+			attributes[4].format = VK_FORMAT_R32G32_SFLOAT;
 
 			return attributes;
 		}

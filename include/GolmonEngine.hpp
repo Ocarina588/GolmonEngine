@@ -18,7 +18,7 @@
 #include "utils.hpp"
 
 #include "Events.hpp"
-#include "Assets.hpp"
+#include "Assets/Assets.hpp"
 
 #include <glm/glm.hpp>
 

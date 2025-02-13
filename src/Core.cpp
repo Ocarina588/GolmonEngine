@@ -1,5 +1,7 @@
 #include "Core.hpp"
 
+char const* model_name = "models/DamagedHelmet.glb";
+
 Core::Core(void)
 {
 	ge::ctx::set_extent(1280, 720);
@@ -30,9 +32,9 @@ Core::Core(void)
 	render_pass.init();
 
 	for (auto& i : ge::ctx::window.images)
-		i.create_framebuffer(render_pass);;
+		i.create_framebuffer(render_pass);
 
-	ge::Assets::load_glb("models/DamagedHelmet.glb");
+	ge::Assets::load_glb(model_name);
 	ge::Assets::init_materials(command_buffer);
 
 	sampler.init();
@@ -90,7 +92,7 @@ int Core::main(int ac, char **av)
 			vkCmdBindDescriptorSets(command_buffer.ptr, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				gp.layout, 0, 1, &descriptors.get_set(0, 0), 0, nullptr);
 
-			ge::Assets::meshes["models/DamagedHelmet.glb"]->draw(command_buffer);
+			ge::Assets::meshes[model_name]->draw(command_buffer);
 			
 			render_pass.end(command_buffer);
 		}

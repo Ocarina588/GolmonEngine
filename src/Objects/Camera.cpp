@@ -28,10 +28,10 @@ void ge::Camera::init(void)
 
 void ge::Camera::update(void)
 {
-	static glm::vec3 light_pos = { 0.f, 0.f, 3.f };
+	static glm::vec3 light_pos = { 0.f, 0.f, 30.f };
 	static float dt = 0;
 	dt += ge::ctx::window.dt;
-	light_pos = { 0.f, 0.f, 3.f };
+	light_pos = { 0.f, 0.f, 30.f };
 	direction = glm::normalize(target - pos);
 	right = glm::normalize(glm::cross(world_up, direction));
 
@@ -41,7 +41,7 @@ void ge::Camera::update(void)
 	ubo.view_pos = pos;
 	ubo.view = glm::lookAt(pos, target, world_up);
 	ubo.model = glm::mat4(1.f);
-	//ubo.model = glm::rotate(ubo.model, dt * glm::radians(90.f), glm::vec3(0.f, 1.f, 0.f));
+	//ubo.model = glm::rotate(ubo.model, 0.5f * dt * glm::radians(90.f), glm::vec3(0.f, 1.f, 0.f));
 	ubo.model = glm::rotate(ubo.model, glm::radians(90.f), glm::vec3(1.f, 0.f, 0.f));
 	//ge::Camera::rotate_around_point(ubo.light_pos)
 
