@@ -16,7 +16,7 @@ public:
 	ge::Mesh mesh;
 	ge::Sampler sampler;
 
-	ge::Image depth_image;
+	ge::Image depth_image, background;
 	ge::Semaphore image_acquired, finished_rendering;
 	ge::Fence in_flight;
 	ge::CommandPool command_pool;

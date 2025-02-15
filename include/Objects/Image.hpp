@@ -28,6 +28,7 @@ namespace ge {
 		void init(VkImage image, VkImageAspectFlags aspect, VkFormat format = VK_FORMAT_UNDEFINED);
 		void init_raw(ge::CommandBuffer& co, void const* data, uint32_t x, uint32_t y, uint32_t size, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, VkMemoryPropertyFlags properties);
 		void init_with_stbi(ge::CommandBuffer& co, void const* data, uint32_t size, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, VkMemoryPropertyFlags properties);
+		void init_with_stbif(ge::CommandBuffer& co, char const *file_name, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, VkMemoryPropertyFlags properties);
 		void create_framebuffer(ge::RenderPass& render_pass, VkExtent2D extent = {});
 		void barrier(CommandBuffer& buffer, VkImageLayout old, VkImageLayout newl, VkPipelineStageFlags src, VkPipelineStageFlags dst);
 

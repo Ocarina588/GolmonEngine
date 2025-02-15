@@ -43,15 +43,33 @@ namespace ge {
 		Image* depth_image = nullptr;
 	};
 
-	class GraphicsPipeline {
+	class Pipeline {
 	public:
-		GraphicsPipeline(void);
-		~GraphicsPipeline(void);
+		Pipeline(void);
+		~Pipeline(void);
 
 		inline void add_shader_stage(VkPipelineShaderStageCreateInfo i) { stages.push_back(i); }
 		inline void add_binding(VkVertexInputBindingDescription i) { bindings.push_back(i); }
 		inline void add_attribute(VkVertexInputAttributeDescription i) { attributes.push_back(i); }
 		inline void add_layout(VkDescriptorSetLayout i) { layouts.push_back(i); }
+		virtual void init(void) = 0;
+
+		inline void bind(CommandBuffer& command_buffer) { vkCmdBindPipeline(command_buffer.ptr, VK_PIPELINE_BIND_POINT_GRAPHICS, ptr); }
+
+		std::vector<VkPipelineShaderStageCreateInfo> stages;
+		std::vector<VkVertexInputBindingDescription> bindings;
+		std::vector<VkVertexInputAttributeDescription> attributes;
+		std::vector<VkDescriptorSetLayout> layouts;
+		VkPipelineLayout layout = nullptr;
+		VkPipeline ptr = nullptr;
+	};
+
+	class GraphicsPipeline : public Pipeline {
+	public:
+		GraphicsPipeline(void);
+		~GraphicsPipeline(void);
+
+		virtual void init(void);
 
 		inline void set_render_pass(RenderPass& _render_pass) {
 			render_pass = _render_pass.ptr;
@@ -60,13 +78,8 @@ namespace ge {
 			depthStencil.depthWriteEnable = VK_TRUE;
 			depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
 		}
-		void init(void);
 
-		inline void bind(CommandBuffer& command_buffer) { vkCmdBindPipeline(command_buffer.ptr, VK_PIPELINE_BIND_POINT_GRAPHICS, ptr); }
-
-		VkPipelineLayout layout = nullptr;
-		VkPipeline ptr = nullptr;
-
+		VkRenderPass render_pass = nullptr;
 		VkPipelineVertexInputStateCreateInfo vertex_input_state{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
 		VkPipelineInputAssemblyStateCreateInfo input_assembly{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
 		VkPipelineRasterizationStateCreateInfo rasterizer{
@@ -82,16 +95,16 @@ namespace ge {
 		VkRect2D scissors{};
 		VkPipelineColorBlendAttachmentState attachment{};
 		VkPipelineColorBlendStateCreateInfo color_blend{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
+	};
 
-	private:
+	class ComputePipeline : public Pipeline {
+		public:
+			ComputePipeline(void);
+			~ComputePipeline(void);
 
-		VkRenderPass render_pass = nullptr;
-		std::vector<VkPipelineShaderStageCreateInfo> stages;
-		std::vector<VkVertexInputBindingDescription> bindings;
-		std::vector<VkVertexInputAttributeDescription> attributes;
-		std::vector<VkDescriptorSetLayout> layouts;
+			virtual void init(void);
 
-
+		private:
 
 	};
 }

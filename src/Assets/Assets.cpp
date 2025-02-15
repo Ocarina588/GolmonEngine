@@ -18,7 +18,7 @@ struct mikktspace_data {
 // MikkTSpace callbacks
 static int getNumFaces(const SMikkTSpaceContext* pContext) {
 	mikktspace_data* mesh = (mikktspace_data*)pContext->m_pUserData;
-	return mesh->size / 3; // Assuming a triangle mesh
+	return (int)mesh->size / 3; // Assuming a triangle mesh
 }
 
 static int getNumVerticesOfFace(const SMikkTSpaceContext* pContext, int iFace) {
@@ -537,8 +537,50 @@ void ge::Mesh::draw(ge::CommandBuffer& command_buffer)
 
 }
 
-stbi_uc* ge::Assets::load_from_memory(stbi_uc const* buffer, int len, int* x, int* y, int* comp, int req_comp)
+uint8_t* ge::Assets::load_from_memory(stbi_uc const* buffer, int len, int* x, int* y, int* comp, int req_comp)
 {
 	return stbi_load_from_memory(buffer, len, x, y, comp, req_comp);
 }
 
+uint8_t* ge::Assets::load_from_file(char const* file, int* x, int* y, int* comp, int req_comp)
+{
+	return stbi_load(file, x, y, comp, req_comp);
+}
+
+float* ge::Assets::loadf_from_file(char const* file, int* x, int* y, int* comp, int req_comp)
+{
+	return stbi_loadf(file, x, y, comp, req_comp);
+}
+
+float* ge::Assets::load_hdr_with_alpha(const char* filename, int& width, int& height, int& channels) {
+	// Load HDR image (3 channels, floating-point values)
+	float* imageData = stbi_loadf(filename, &width, &height, &channels, 4);
+	if (!imageData) {
+		std::cerr << "Failed to load HDR image." << std::endl;
+		return nullptr;
+	}
+
+	// If the image has 3 channels (RGB), we need to convert it to 4 channels (RGBA)
+	if (channels == 3) {
+		std::cout << "wtf?" << std::endl;
+		// Allocate new image array with 4 channels
+		float* newImageData = new float[width * height * 4];  // 4 channels per pixel
+
+		// Copy RGB data into the new array and set alpha to 1.0 for each pixel
+		for (int i = 0; i < width * height; ++i) {
+			newImageData[i * 4 + 0] = imageData[i * 3 + 0];  // R
+			newImageData[i * 4 + 1] = imageData[i * 3 + 1];  // G
+			newImageData[i * 4 + 2] = imageData[i * 3 + 2];  // B
+			newImageData[i * 4 + 3] = 1.0f;  // A (set to 1.0)
+		}
+
+		// Free the original 3-channel image
+		stbi_image_free(imageData);
+
+		channels = 4;
+		// Return the new 4-channel image
+		return newImageData;
+	}
+	// If the image already has 4 channels, return it as is
+	return imageData;
+}

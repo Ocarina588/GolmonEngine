@@ -54,8 +54,9 @@ void ge::Image::init_raw(ge::CommandBuffer& co, void const* data, uint32_t x, ui
 	init(usage, aspect, properties, format, VK_IMAGE_LAYOUT_UNDEFINED, { (uint32_t)x, (uint32_t)y });
 
 	ge::Buffer stagin_buffer;
+	std::cout << x * y * 4 * sizeof(float) << " " << size << std::endl;
 	stagin_buffer.init(
-		x * y * 4, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 	);
 	stagin_buffer.map();
@@ -98,6 +99,13 @@ void ge::Image::init_with_stbi(ge::CommandBuffer& co, void const * data, uint32_
 	init_raw(co, image_data, x, y, x * y * c, format, usage, aspect, properties);	
 }
 
+void ge::Image::init_with_stbif(ge::CommandBuffer& co, char const *file_name, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, VkMemoryPropertyFlags properties)
+{
+	int x = 0, y = 0, c = 0;
+	auto image_data = ge::Assets::load_hdr_with_alpha(file_name, x, y, c);
+	std::cout << x << " " << y << " toto " << c << std::endl;
+	init_raw(co, image_data, x, y, x * y * c * sizeof(float), format, usage, aspect, properties);
+}
 
 void ge::Image::create_framebuffer(ge::RenderPass& render_pass, VkExtent2D extent)
 {

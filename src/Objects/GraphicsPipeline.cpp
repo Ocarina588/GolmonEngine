@@ -80,6 +80,16 @@ void RenderPass::end(CommandBuffer& buffer)
 	vkCmdEndRenderPass(buffer.ptr);
 }
 
+Pipeline::Pipeline(void)
+{
+
+}
+
+Pipeline::~Pipeline(void)
+{
+
+}
+
 GraphicsPipeline::GraphicsPipeline(void)
 {
 
@@ -154,4 +164,29 @@ void GraphicsPipeline::init(void)
 
 	if (vkCreateGraphicsPipelines(ctx::device.ptr, nullptr, 1, &create_info, nullptr, &ptr) != VK_SUCCESS)
 		throw std::runtime_error("failed to create graphics pipeline");
+}
+
+ge::ComputePipeline::ComputePipeline(void)
+{
+
+}
+
+ge::ComputePipeline::~ComputePipeline(void)
+{
+
+}
+
+void ge::ComputePipeline::init(void)
+{
+	VkComputePipelineCreateInfo create_info{ VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };
+	create_info.stage = stages[0];
+	VkPipelineLayoutCreateInfo layout_create_info{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+	layout_create_info.setLayoutCount = static_cast<uint32_t>(layouts.size());
+	layout_create_info.pSetLayouts = layouts.data();
+
+	if (vkCreatePipelineLayout(ctx::device.ptr, &layout_create_info, nullptr, &layout) != VK_SUCCESS)
+		throw std::runtime_error("failed to create pipeline layout");
+
+	if (vkCreateComputePipelines(ctx::device.ptr, nullptr, 1, &create_info, nullptr, &ptr) != VK_SUCCESS)
+		throw std::runtime_error("failed to create compute pipeline");
 }

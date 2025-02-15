@@ -113,6 +113,10 @@ namespace ge {
 		static std::vector<material> materials;
 
 		static uint8_t* load_from_memory(uint8_t const* buffer, int len, int* x, int* y, int* comp, int req_comp);
+		static uint8_t* load_from_file(char const* file, int* x, int* y, int* comp, int req_comp);
+		static float* loadf_from_file(char const* file, int* x, int* y, int* comp, int req_comp);
+		static float* load_hdr_with_alpha(const char* filename, int& width, int& height, int& channels);
+
 
 	private:
 		

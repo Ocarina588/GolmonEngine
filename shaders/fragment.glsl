@@ -13,6 +13,7 @@ layout(set = 0, binding = 2) uniform sampler2D t_normal;
 layout(set = 0, binding = 3) uniform sampler2D t_metallic;
 layout(set = 0, binding = 4) uniform sampler2D t_emissive;
 layout(set = 0, binding = 5) uniform sampler2D t_occlusion;
+layout(set = 0, binding = 6) uniform sampler2D t_background;
 
 vec3 light_color = vec3(1.0f, 1.0f, 1.0f);
 float ambient_strength = 0.05;
@@ -44,6 +45,13 @@ void main()
 
     //RESULT
     vec3 final_result = (ambient + diffuse + specular) * albedo;
+
+    vec3 dir = normalize(view_pos - vec3(0.0, 0.0, 0.0));
+    // Convert direction to spherical coordinates
+    float u = atan(dir.z, dir.x) / (2.0 * 3.14159265359) + 0.5;
+    float v = asin(dir.y) / 3.14159265359 + 0.5;
+
+    // Sample the environment texture
 
     outColor = vec4(final_result, 1.0f);
 }

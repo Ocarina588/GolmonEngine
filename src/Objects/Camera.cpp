@@ -30,7 +30,7 @@ void ge::Camera::update(void)
 {
 	static glm::vec3 light_pos = { 0.f, 0.f, 30.f };
 	static float dt = 0;
-	dt += ge::ctx::window.dt;
+	dt += (float)ge::ctx::window.dt;
 	light_pos = { 0.f, 0.f, 30.f };
 	direction = glm::normalize(target - pos);
 	right = glm::normalize(glm::cross(world_up, direction));

@@ -15,16 +15,23 @@ Core::Core(void)
 	events.init(this);
 	camera.init();
 
+	command_pool.init(ge::ctx::device.index.graphics);
+	command_buffer.init(command_pool);
+
 	depth_image.init(
 		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_FORMAT_D32_SFLOAT
 	);
 
+	background.init_with_stbif(command_buffer, "models/background.hdr",
+		VK_FORMAT_R16G16B16A16_SFLOAT,
+		VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		VK_IMAGE_ASPECT_COLOR_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+	);
+
 	image_acquired.init(); finished_rendering.init();
 	in_flight.init();
-
-	command_pool.init(ge::ctx::device.index.graphics);
-	command_buffer.init(command_pool);
 
 	render_pass.use_depth(depth_image);
 	render_pass.set_initial_layout(VK_IMAGE_LAYOUT_UNDEFINED);
@@ -45,7 +52,8 @@ Core::Core(void)
 		.add_binding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)	// normal
 		.add_binding(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)	// metallic
 		.add_binding(4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)	// emissive
-		.add_binding(5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);	// occlusion
+		.add_binding(5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)	// occlusion
+		.add_binding(6, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);	// background
 	descriptors.init();
 
 	descriptors.add_write(0, 0, 0, camera);
@@ -54,6 +62,7 @@ Core::Core(void)
 	descriptors.add_write(0, 0, 3, ge::Assets::materials[0].metallic,	VK_IMAGE_LAYOUT_GENERAL, sampler);
 	descriptors.add_write(0, 0, 4, ge::Assets::materials[0].emissive,	VK_IMAGE_LAYOUT_GENERAL, sampler);
 	descriptors.add_write(0, 0, 5, ge::Assets::materials[0].occlusion,	VK_IMAGE_LAYOUT_GENERAL, sampler);
+	descriptors.add_write(0, 0, 6, background, VK_IMAGE_LAYOUT_GENERAL, sampler);
 	descriptors.write();
 
 	ge::Shader v("shaders/vertex.spv", VK_SHADER_STAGE_VERTEX_BIT);
@@ -65,7 +74,8 @@ Core::Core(void)
 	gp.add_binding(ge::Vertex::get_binding());
 	for (auto i : ge::Vertex::get_attribute())
 		gp.add_attribute(i);
-	gp.add_layout(descriptors.layouts[0]);
+	for (auto i : descriptors.layouts)
+		gp.add_layout(i);
 	gp.rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 	gp.init();
 }
