@@ -8,6 +8,7 @@ namespace ge {
 
 	class Image;
 	class CommandBuffer;
+
 	class RenderPass {
 	public:
 		friend class GraphicsPipeline;
@@ -20,7 +21,7 @@ namespace ge {
 		inline void use_depth(Image& _depth_image) { subpass_description.pDepthStencilAttachment = &depth_ref; depth_image = &_depth_image; }
 		inline void set_final_layout(VkImageLayout layout) { color_attachment.finalLayout = layout; }
 		inline void set_initial_layout(VkImageLayout layout) { color_attachment.initialLayout = layout; }
-		inline void set_clear_color(glm::vec3 color) { clear_color = { {{color.x, color.y, color.z}} }; }
+		inline void set_clear_color(glm::vec3 color) { clear_color = { {{color.x / 255, color.y / 255, color.z / 255}} }; }
 		void begin(CommandBuffer& buffer, VkFramebuffer frame_buffer = nullptr, VkExtent2D extent = {});
 		void end(CommandBuffer& buffer);
 

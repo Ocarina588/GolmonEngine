@@ -37,14 +37,18 @@ void ge::Camera::update(void)
 
 	light_pos = rotate_around_point(light_pos, target, { 0.f, 1.f, 0.f }, -(float)1 * dt * glm::radians(90.f));
 	//light_pos = pos;
-	ubo.light_pos = light_pos;
-	ubo.view_pos = pos;
+	ubo.light_pos = glm::vec4(light_pos, 1.f);
+	ubo.view_pos = glm::vec4(pos, 1.f);
 	ubo.view = glm::lookAt(pos, target, world_up);
 	ubo.model = glm::mat4(1.f);
 	//ubo.model = glm::rotate(ubo.model, 0.5f * dt * glm::radians(90.f), glm::vec3(0.f, 1.f, 0.f));
 	ubo.model = glm::rotate(ubo.model, glm::radians(90.f), glm::vec3(1.f, 0.f, 0.f));
 	//ge::Camera::rotate_around_point(ubo.light_pos)
+	write_ubo();
+}
 
+void ge::Camera::write_ubo(void)
+{
 	buffer.memcpy(&ubo, sizeof(ge::UBO));
 }
 

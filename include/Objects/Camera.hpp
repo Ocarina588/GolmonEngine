@@ -10,8 +10,13 @@ namespace ge {
 		glm::mat4 model;
 		glm::mat4 view;
 		glm::mat4 proj;
-		glm::vec3 light_pos; // temporal, to be removed
-		glm::vec3 view_pos;
+		glm::vec4 light_pos; // temporal, to be removed
+		glm::vec4 view_pos;
+		uint32_t index_albedo;
+		uint32_t index_normal;
+		uint32_t index_metallic;
+		uint32_t index_emissive;
+		uint32_t index_occlusion;
 	};
 
 	class Camera {
@@ -25,12 +30,13 @@ namespace ge {
 		void update(void);
 		void process_mouse(double x, double y);
 		void process_scroll(double x, double y);
+		void write_ubo(void);
 
 		static glm::vec3 rotate_around_point(const glm::vec3& point, const glm::vec3& center, glm::vec3 axis, float angle);
 
-	private:
 		UBO ubo;
 		ge::Buffer buffer;
+	private:
 
 		glm::vec3 pos;
 		glm::vec3 target;

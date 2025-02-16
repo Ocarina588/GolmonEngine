@@ -6,6 +6,9 @@
 
 // MIKKSTPACE
 
+#include <assimp/Importer.hpp>      // Assimp importer class
+#include <assimp/scene.h>  
+#include <assimp/postprocess.h>// Main data structure for scenes
 #include "Assets/mikktspace.h"
 
 struct mikktspace_data {
@@ -14,6 +17,10 @@ struct mikktspace_data {
 	size_t size = 0;
 };
 
+std::vector<ge::Mesh::ptr> ge::Assets::meshes;
+std::vector<ge::Assets::material_s> ge::Assets::materials;
+std::vector<ge::Image> ge::Assets::textures;
+std::vector<ge::Assets::texture_s> ge::Assets::to_be_loaded; 
 
 // MikkTSpace callbacks
 static int getNumFaces(const SMikkTSpaceContext* pContext) {
@@ -75,10 +82,6 @@ void generateTangents(mikktspace_data& mesh) {
 	genTangSpaceDefault(&context); // Run the algorithm
 }
 
-std::unordered_map<std::string, ge::Mesh::ptr> ge::Assets::meshes;
-std::vector<ge::Assets::material> ge::Assets::materials;
-std::vector<tinygltf::Model> ge::Assets::to_be_loaded;
-
 ge::Sampler::Sampler(void)
 {
 	create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -127,396 +130,6 @@ void ge::Assets::clear(void)
 	to_be_loaded.clear();
 }
 
-void ge::Assets::load_glb(char const* file)
-{
-	tinygltf::TinyGLTF loader; 
-	std::string err;
-	std::string warn;
-
-	tinygltf::Model model; 
-	bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, file);
-	if (!warn.empty())
-		printf("Warn: %s\n", warn.c_str());
-	if (!err.empty())
-		printf("Err: %s\n", err.c_str());
-	if (!ret) {
-		printf("Failed to parse glTF\n");
-		return;
-	}
-
-	if (model.scenes.empty()) {
-		std::cerr << "No scene found in the GLB file." << std::endl;
-		return;
-	}
-
-	const tinygltf::Scene& scene = model.scenes[model.defaultScene];
-	if (scene.nodes.empty()) {
-		std::cerr << "No nodes found in the scene." << std::endl;
-		return;
-	}
-	std::cout << "nodes : " << model.nodes.size() << std::endl;
-	const tinygltf::Node& node = model.nodes[scene.nodes[0]];
-	if (node.mesh < 0) {
-		std::cerr << "First node does not contain a mesh." << std::endl;
-		return;
-	}
-
-	const tinygltf::Mesh& mesh = model.meshes[node.mesh];
-	Mesh::ptr m = std::make_shared<Mesh>();
-	
-	std::cout << "primitives: " << mesh.primitives.size() << std::endl;
-
-	for (const tinygltf::Primitive& primitive : mesh.primitives) {
-		auto v_data = load_vertex_data(m, model, primitive);
-		auto i_data = load_index_data(m, model, primitive);
-
-		std::cout << i_data.size() << " " << v_data.size() << " " << v_data.size() / 11 << std::endl;
-		if (primitive.attributes.find("TANGENT") == primitive.attributes.end()) {
-			std::cout << "No tangent data found, computing it myself then" << std::endl;
-			mikktspace_data tmp;
-			tmp.indices = i_data.data();
-			tmp.vertices = reinterpret_cast<ge::Vertex*>(v_data.data());
-			tmp.size = i_data.size();
-			generateTangents(tmp);
-			//compute_tangent(reinterpret_cast<Vertex*>(v_data.data()), i_data);
-		}
-
-		m->vertex_data.init(
-			v_data.data(), (uint32_t)(sizeof(float) * v_data.size()), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-		);
-
-		m->index_data.init(
-			(void*)i_data.data(), (uint32_t)(sizeof(uint32_t) * i_data.size()), VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-		);
-	}
-
-	m->material_id = (uint32_t)to_be_loaded.size();
-	to_be_loaded.emplace_back(std::move(model));
-	meshes[file] = m;
-}
-
-std::vector<float> ge::Assets::load_vertex_data(Mesh::ptr m, tinygltf::Model const& model, tinygltf::Primitive const& primitive)
-{
-	if (primitive.attributes.find("POSITION") == primitive.attributes.end()) {
-		std::cerr << "Primitive does not contain vertex positions." << std::endl;
-		return {};
-	}
-
-	// Load POSITION data
-	int posAccessorIndex = primitive.attributes.at("POSITION");
-	const tinygltf::Accessor& posAccessor = model.accessors[posAccessorIndex];
-	const tinygltf::BufferView& posBufferView = model.bufferViews[posAccessor.bufferView];
-	const tinygltf::Buffer& posBuffer = model.buffers[posBufferView.buffer];
-
-	const unsigned char* posData = posBuffer.data.data() + posBufferView.byteOffset + posAccessor.byteOffset;
-	size_t numVertices = posAccessor.count;
-	size_t posStride = (posAccessor.ByteStride(posBufferView) > 0) ? posAccessor.ByteStride(posBufferView) : sizeof(float) * 3;
-
-	// Check if normals exist
-	bool hasNormals = primitive.attributes.find("NORMAL") != primitive.attributes.end();
-	const unsigned char* normalData = nullptr;
-	size_t normalStride = 0;
-
-	if (hasNormals) {
-		int normalAccessorIndex = primitive.attributes.at("NORMAL");
-		const tinygltf::Accessor& normalAccessor = model.accessors[normalAccessorIndex];
-		const tinygltf::BufferView& normalBufferView = model.bufferViews[normalAccessor.bufferView];
-		const tinygltf::Buffer& normalBuffer = model.buffers[normalBufferView.buffer];
-
-		normalData = normalBuffer.data.data() + normalBufferView.byteOffset + normalAccessor.byteOffset;
-		normalStride = (normalAccessor.ByteStride(normalBufferView) > 0) ? normalAccessor.ByteStride(normalBufferView) : sizeof(float) * 3;
-	}
-
-	// Check if Tangent exist
-	bool hasTangent = primitive.attributes.find("TANGENT") != primitive.attributes.end();
-	const unsigned char* tangentData = nullptr;
-	size_t tangentStride = 0;
-
-	if (hasTangent) {
-		int tangentAccessorIndex = primitive.attributes.at("TANGENT");
-		const tinygltf::Accessor& tangentAccessor = model.accessors[tangentAccessorIndex];
-		const tinygltf::BufferView& tangentBufferView = model.bufferViews[tangentAccessor.bufferView];
-		const tinygltf::Buffer& tangentBuffer = model.buffers[tangentBufferView.buffer];
-
-		tangentData = tangentBuffer.data.data() + tangentBufferView.byteOffset + tangentAccessor.byteOffset;
-		tangentStride = (tangentAccessor.ByteStride(tangentBufferView) > 0) ? tangentAccessor.ByteStride(tangentBufferView) : sizeof(float) * 3;
-	}
-
-	// Check if UVs exist
-	bool hasUVs = primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end();
-	const unsigned char* uvData = nullptr;
-	size_t uvStride = 0;
-	if (hasUVs) {
-		int uvAccessorIndex = primitive.attributes.at("TEXCOORD_0");
-		const tinygltf::Accessor& uvAccessor = model.accessors[uvAccessorIndex];
-		const tinygltf::BufferView& uvBufferView = model.bufferViews[uvAccessor.bufferView];
-		const tinygltf::Buffer& uvBuffer = model.buffers[uvBufferView.buffer];
-
-		uvData = uvBuffer.data.data() + uvBufferView.byteOffset + uvAccessor.byteOffset;
-		uvStride = (uvAccessor.ByteStride(uvBufferView) > 0) ? uvAccessor.ByteStride(uvBufferView) : sizeof(float) * 2;
-	}
-
-
-	std::vector<float> vertices;
-	for (size_t i = 0; i < numVertices; ++i) {
-		// Read Position
-		float x = *reinterpret_cast<const float*>(posData + i * posStride);
-		float y = *reinterpret_cast<const float*>(posData + i * posStride + sizeof(float));
-		float z = *reinterpret_cast<const float*>(posData + i * posStride + 2 * sizeof(float));
-
-		vertices.push_back(x);
-		vertices.push_back(y);
-		vertices.push_back(z);
-
-		// Read Normal (if available, otherwise set to (0,0,1))
-		if (hasNormals) {
-			float nx = *reinterpret_cast<const float*>(normalData + i * normalStride);
-			float ny = *reinterpret_cast<const float*>(normalData + i * normalStride + sizeof(float));
-			float nz = *reinterpret_cast<const float*>(normalData + i * normalStride + 2 * sizeof(float)); 
-
-			vertices.push_back(nx);
-			vertices.push_back(ny);
-			vertices.push_back(nz); 
-		}
-		else {
-			vertices.push_back(0.0f); // Default normal (0,0,1)
-			vertices.push_back(0.0f); 
-			vertices.push_back(0.0f);
-		}
-		//TANGENT
-		if (hasTangent) {
-			float nx = *reinterpret_cast<const float*>(tangentData + i * tangentStride);
-			float ny = *reinterpret_cast<const float*>(tangentData + i * tangentStride + sizeof(float));
-			float nz = *reinterpret_cast<const float*>(tangentData + i * tangentStride + 2 * sizeof(float));
-
-			vertices.push_back(nx);
-			vertices.push_back(ny);
-			vertices.push_back(nz); 
-		}
-		else {
-			vertices.push_back(0.0f); // Default normal (0,0,1)
-			vertices.push_back(0.0f); 
-			vertices.push_back(1.0f);
-		}
-
-		//BITANGENT
-		vertices.push_back(0.0f);
-		vertices.push_back(0.0f);
-		vertices.push_back(0.0f);
-		// Read UV (if available, otherwise set to (0,0))
-		if (hasUVs) {
-			float u = *reinterpret_cast<const float*>(uvData + i * uvStride);
-			float v = *reinterpret_cast<const float*>(uvData + i * uvStride + sizeof(float));
-
-			vertices.push_back(u);
-			vertices.push_back(v);
-		}
-		else {
-			vertices.push_back(0.0f);
-			vertices.push_back(0.0f);
-		}
-	}
-
-	return vertices;
-}
-
-void ge::Assets::compute_tangent(Vertex *p, std::vector<uint32_t> const &indices)
-{
-	for (int i = 0; i < indices.size(); i+=3) {
-
-		//my version
-		/*
-		Vertex& A = p[indices[i]];
-		Vertex& B = p[indices[i + 1]];
-		Vertex& C = p[indices[i + 2]];
-
-		glm::vec3 E1 = B.pos - A.pos;
-		glm::vec3 E2 = C.pos - A.pos;
-		glm::vec2 L1 = B.uv - A.uv;
-		glm::vec2 L2 = C.uv - A.uv;
-
-		glm::mat2 inv = glm::inverse(glm::mat2(L1.x, L1.y, L2.x, L2.y));
-		
-		glm::vec3 tangent;
-
-		tangent.x = inv[0].x * E1.x + inv[0].y * E2.x;
-		tangent.y = inv[0].x * E1.y + inv[0].y * E2.y;
-		tangent.z = inv[0].x * E1.z + inv[0].y * E2.z;
-
-		// Store them
-		A.tangent += tangent;
-		B.tangent += tangent;
-		C.tangent += tangent; 
-		*/
-		//OGLDEV VERSION
-
-	//	/*
-
-		/*
-		Vertex& v0 = p[indices[i]];
-		Vertex& v1 = p[indices[i + 1]];
-		Vertex& v2 = p[indices[i + 2]];
-
-		glm::vec3 Edge1 = v1.pos - v0.pos;
-		glm::vec3 Edge2 = v2.pos - v0.pos;
-
-		float DeltaU1 = v1.uv.x - v0.uv.x;
-		float DeltaV1 = v1.uv.y - v0.uv.y;
-		float DeltaU2 = v2.uv.x - v0.uv.x;
-		float DeltaV2 = v2.uv.y - v0.uv.y;
-
-		float f = 1.0f / (DeltaU1 * DeltaV2 - DeltaU2 * DeltaV1);
-
-		glm::vec4 tangent;
-
-		tangent.x = f * (DeltaV2 * Edge1.x - DeltaV1 * Edge2.x);
-		tangent.y = f * (DeltaV2 * Edge1.y - DeltaV1 * Edge2.y);
-		tangent.z = f * (DeltaV2 * Edge1.z - DeltaV1 * Edge2.z);
-
-
-		// Store them
-		v0.tangent += tangent;
-		v1.tangent += tangent;
-		v2.tangent += tangent; 
-
-		*/
-		//*/
-	}
-
-	for (int i = 0; i < indices.size(); i += 3) {
-		Vertex& A = p[indices[i]];
-		Vertex& B = p[indices[i + 1]];
-		Vertex& C = p[indices[i + 2]];
-
-		A.tangent = glm::normalize(A.tangent);
-		B.tangent = glm::normalize(B.tangent);
-		C.tangent = glm::normalize(C.tangent);
-	}
-}
-
-std::vector<uint32_t> ge::Assets::load_index_data(Mesh::ptr m, tinygltf::Model const& model, tinygltf::Primitive const& primitive)
-{
-	if (primitive.indices < 0) {
-		std::cerr << "Primitive does not contain indices." << std::endl;
-		return {};
-	}
-
-	const tinygltf::Accessor& indexAccessor = model.accessors[primitive.indices];
-	const tinygltf::BufferView& indexBufferView = model.bufferViews[indexAccessor.bufferView];
-	const tinygltf::Buffer& indexBuffer = model.buffers[indexBufferView.buffer];
-
-	const unsigned char* indexData = indexBuffer.data.data() + indexBufferView.byteOffset + indexAccessor.byteOffset;
-
-	std::vector<uint32_t> indices;
-	size_t numIndices = indexAccessor.count;
-
-	for (size_t i = 0; i < numIndices; ++i) {
-		uint32_t index;
-		if (indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
-			index = *reinterpret_cast<const uint16_t*>(indexData + i * sizeof(uint16_t));
-		}
-		else if (indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
-			index = *reinterpret_cast<const uint32_t*>(indexData + i * sizeof(uint32_t));
-		}
-		else {
-			std::cerr << "Unsupported index component type." << std::endl;
-			continue;
-		}
-		indices.push_back(index);
-	}
-	return indices;
-}
-
-void PrintTextureType(const tinygltf::Model& model) {
-	for (size_t i = 0; i < model.materials.size(); ++i) {
-		const tinygltf::Material& material = model.materials[i];
-		std::cout << "Material " << i << ": " << material.name << std::endl;
-
-		// Check if the material has an albedo texture
-		if (material.pbrMetallicRoughness.baseColorTexture.index != -1) {
-			int textureIndex = material.pbrMetallicRoughness.baseColorTexture.index;
-			std::cout << "  - Albedo: Texture " << textureIndex << " ("
-				<< model.textures[textureIndex].name << ")\n";
-		}
-
-		// Check if the material has a metallic-roughness texture
-		if (material.pbrMetallicRoughness.metallicRoughnessTexture.index != -1) {
-			int textureIndex = material.pbrMetallicRoughness.metallicRoughnessTexture.index;
-			std::cout << "  - Metallic-Roughness: Texture " << textureIndex << " ("
-				<< model.textures[textureIndex].name << ")\n";
-		}
-
-		// Check if the material has a normal texture
-		if (material.normalTexture.index != -1) {
-			int textureIndex = material.normalTexture.index;
-			std::cout << "  - Normal: Texture " << textureIndex << " ("
-				<< model.textures[textureIndex].name << ")\n";
-		}
-
-		// Check if the material has an occlusion texture
-		if (material.occlusionTexture.index != -1) {
-			int textureIndex = material.occlusionTexture.index;
-			std::cout << "  - Occlusion: Texture " << textureIndex << " ("
-				<< model.textures[textureIndex].name << ")\n";
-		}
-
-		// Check if the material has an emissive texture
-		if (material.emissiveTexture.index != -1) {
-			int textureIndex = material.emissiveTexture.index;
-			std::cout << "  - Emissive: Texture " << textureIndex << " ("
-				<< model.textures[textureIndex].name << ")\n";
-		}
-	}
-}
-void ge::Assets::init_materials(ge::CommandBuffer &co)
-{
-	materials.resize(to_be_loaded.size());
-
-	for (int i = 0; i < to_be_loaded.size(); i++) {
-		auto& model = to_be_loaded[i];
-		PrintTextureType(model);
-		for (const auto& material : model.materials) {
-			if (material.normalTexture.index >= 0)
-				load_gltf_texture(model, co, materials[i].normal, material.normalTexture.index);
-			if (material.pbrMetallicRoughness.baseColorTexture.index >= 0)
-				load_gltf_texture(model, co, materials[i].albedo, material.pbrMetallicRoughness.baseColorTexture.index);
-			if (material.pbrMetallicRoughness.metallicRoughnessTexture.index >= 0)
-				load_gltf_texture(model, co, materials[i].metallic, material.pbrMetallicRoughness.metallicRoughnessTexture.index);
-			if (material.occlusionTexture.index >= 0)
-				load_gltf_texture(model, co, materials[i].occlusion, material.occlusionTexture.index);
-			if (material.emissiveTexture.index >= 0)
-				load_gltf_texture(model, co, materials[i].emissive, material.emissiveTexture.index);
-		}
-	}
-}
-
-void ge::Assets::load_gltf_texture(tinygltf::Model const& model, ge::CommandBuffer &co, ge::Image &m, int id)
-{
-	const tinygltf::Texture& texture = model.textures[id];
-
-	if (texture.source < 0) 
-		throw std::runtime_error("Error: image data source error!");
-
-	const tinygltf::Image& image = model.images[texture.source];
-
-	std::cout << "Width: " << image.width << ", Height: " << image.height << std::endl;
-	std::cout << "Component Count: " << image.component << std::endl; // 3 (RGB) or 4 (RGBA)
-
-	if (!image.image.data() || image.image.size() == 0)
-		throw std::runtime_error("Error: Color map image data is empty!");
-
-	m.init_raw(
-		co,
-		image.image.data(), image.width, image.height, (uint32_t)image.image.size(),  // Corrected width calculation
-		VK_FORMAT_R8G8B8A8_UNORM,
-		VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-		VK_IMAGE_ASPECT_COLOR_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-	);
-}
-
 void ge::Mesh::draw(ge::CommandBuffer& command_buffer)
 {
 	//std::cout << vertex_data.size() << " " << index_data.size() << std::endl;
@@ -547,40 +160,144 @@ uint8_t* ge::Assets::load_from_file(char const* file, int* x, int* y, int* comp,
 	return stbi_load(file, x, y, comp, req_comp);
 }
 
-float* ge::Assets::loadf_from_file(char const* file, int* x, int* y, int* comp, int req_comp)
+void ge::Assets::load_assimp(char const* file_name)
 {
-	return stbi_loadf(file, x, y, comp, req_comp);
+		Assimp::Importer importer;
+		aiScene const* scene = importer.ReadFile(file_name, aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
+		if (!scene)
+			throw std::runtime_error(importer.GetErrorString());
+	
+		load_assimp_vertices(scene);
+		load_assimp_materials(scene);
+
+		//meshes[i].init(meshes[i].vertices.data(), sizeof(Vertex) * meshes[i].vertices.size());
+
+
+		//if (scene->mMaterials[mesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_DIFFUSE, *(aiColor3D*)&materials[mesh->mMaterialIndex].diffuse) != AI_SUCCESS)
+		//	materials[mesh->mMaterialIndex].diffuse = { 1.f, 0.f, 0.f };
+		//if (scene->mMaterials[mesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_SPECULAR, *(aiColor3D*)&materials[mesh->mMaterialIndex].specular) != AI_SUCCESS)
+		//	materials[mesh->mMaterialIndex].specular = { 0.f, 0.f, 0.f };
+		//if (scene->mMaterials[mesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_EMISSIVE, *(aiColor3D*)&materials[mesh->mMaterialIndex].emissive) != AI_SUCCESS)
+		//	materials[mesh->mMaterialIndex].specular = { 0.f, 0.f, 0.f };
+
+		//meshes[i].material_index = mesh->mMaterialIndex;
+		//std::cout << i << " " << mesh->mMaterialIndex << std::endl;
+		//materials[mesh->mMaterialIndex].name = scene->mMaterials[mesh->mMaterialIndex]->GetName().C_Str();
+
 }
 
-float* ge::Assets::load_hdr_with_alpha(const char* filename, int& width, int& height, int& channels) {
-	// Load HDR image (3 channels, floating-point values)
-	float* imageData = stbi_loadf(filename, &width, &height, &channels, 4);
-	if (!imageData) {
-		std::cerr << "Failed to load HDR image." << std::endl;
-		return nullptr;
-	}
+void ge::Assets::load_assimp_vertices(void const* s)
+{
+	aiScene const* scene = (aiScene const *)s;
+	// im doing a vector of vectors because I want to normalize the size model, 
+	// so I need to get the length of all the meshes of the model before loading them into the gpu
+	std::vector<std::vector<ge::Vertex>> vertices(scene->mNumMeshes); 
+	std::vector<std::vector<uint32_t>> indices(scene->mNumMeshes);
+	glm::vec3 min_pos(*(glm::vec3*)&scene->mMeshes[0]->mVertices[0]), max_pos(*(glm::vec3*)&scene->mMeshes[0]->mVertices[0]);
+	float max_length = 0;
 
-	// If the image has 3 channels (RGB), we need to convert it to 4 channels (RGBA)
-	if (channels == 3) {
-		std::cout << "wtf?" << std::endl;
-		// Allocate new image array with 4 channels
-		float* newImageData = new float[width * height * 4];  // 4 channels per pixel
+	if (scene->mNumMeshes <= 0)
+		throw std::runtime_error("model doest have any meshes");
 
-		// Copy RGB data into the new array and set alpha to 1.0 for each pixel
-		for (int i = 0; i < width * height; ++i) {
-			newImageData[i * 4 + 0] = imageData[i * 3 + 0];  // R
-			newImageData[i * 4 + 1] = imageData[i * 3 + 1];  // G
-			newImageData[i * 4 + 2] = imageData[i * 3 + 2];  // B
-			newImageData[i * 4 + 3] = 1.0f;  // A (set to 1.0)
+	for (int i = 0; i < (int)scene->mNumMeshes; i++) {
+		aiMesh* mesh = scene->mMeshes[i];
+		
+		for (int j = 0; j < (int)mesh->mNumFaces; j++)
+			for (int k = 0; k < 3; k++)
+				indices[i].push_back(mesh->mFaces[j].mIndices[k]);
+
+		vertices[i].resize(mesh->mNumVertices);
+		for (int j = 0; j < (int)mesh->mNumVertices; j++) {
+			vertices[i][j].pos = *(glm::vec3*)(&mesh->mVertices[j]);
+			vertices[i][j].normal = *(glm::vec3*)(&mesh->mNormals[j]);
+			vertices[i][j].tangent = *(glm::vec3*)(&mesh->mTangents[j]);
+			vertices[i][j].bitangent = *(glm::vec3*)(&mesh->mBitangents[j]);
+			vertices[i][j].uv = { mesh->mTextureCoords[0][j].x, mesh->mTextureCoords[0][j].y };
+
+			max_length = std::max(glm::length(vertices[i][j].pos), max_length);
+			min_pos = glm::min(min_pos, vertices[i][j].pos);
+			max_pos = glm::max(max_pos, vertices[i][j].pos);
 		}
-
-		// Free the original 3-channel image
-		stbi_image_free(imageData);
-
-		channels = 4;
-		// Return the new 4-channel image
-		return newImageData;
 	}
-	// If the image already has 4 channels, return it as is
-	return imageData;
+
+	glm::vec3 center = (min_pos + max_pos) / 2.0f;
+
+	for (int i = 0; i < (int)scene->mNumMeshes; i++) {
+
+		for (auto& v : vertices[i])
+			v.pos = (v.pos - center) / max_length;
+	
+		ge::Mesh::ptr mesh = std::make_shared<ge::Mesh>(); 
+		mesh->material_id = scene->mMeshes[i]->mMaterialIndex;
+		mesh->load_indices(indices[i]);
+		mesh->load_vertices(vertices[i]);
+		meshes.push_back(mesh); 
+	}
+}
+
+void ge::Assets::load_assimp_materials(void const* s)
+{
+	aiScene const* scene = (aiScene const*)s;
+
+	auto get_material_texture_index = [&](aiMaterial const* material, aiTextureType type) -> uint32_t {
+		if (material->GetTextureCount(type) <= 0) return 0;
+		aiString texture_path;
+		if (material->GetTexture(type, 0, &texture_path) != aiReturn_SUCCESS)
+			throw std::runtime_error("internal error while loading textures");
+		std::string name = texture_path.C_Str();
+		if (name[0] != '*')
+			throw std::runtime_error("no support for not emedded textures yet");
+		return std::stoi(name.substr(1));
+	};
+
+	for (int i = 0; i < (int)scene->mNumTextures; i++) {
+		texture_s texture;
+		if (scene->mTextures[i]->mHeight != 0)
+			throw std::runtime_error("we dont support non embedded textures yet");
+		texture.data = ge::Assets::load_from_memory(
+			(stbi_uc*)scene->mTextures[i]->pcData, scene->mTextures[i]->mWidth, 
+			&texture.w, &texture.h, &texture.c, STBI_rgb_alpha
+		);
+		to_be_loaded.push_back(texture);
+	}
+
+	for (int i = 0; i < (int)scene->mNumMaterials; i++) {
+		auto const material = scene->mMaterials[i];
+		material_s m; 
+		m.index_albedo = get_material_texture_index(material, aiTextureType_SPECULAR);
+		m.index_emissive = get_material_texture_index(material, aiTextureType_EMISSIVE);
+		m.index_normal = get_material_texture_index(material, aiTextureType_NORMALS);
+		materials.push_back(m); 
+	}
+}
+
+
+void ge::Mesh::load_indices(std::vector<unsigned int> const& indices)
+{
+	index_data.init(
+		(void*)indices.data(), (uint32_t)(sizeof(uint32_t) * indices.size()), VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+	);
+}
+
+void ge::Mesh::load_vertices(std::vector<ge::Vertex> const& vertices)
+{
+	vertex_data.init(
+		(void *)vertices.data(), (uint32_t)(sizeof(ge::Vertex) * vertices.size()), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+	);
+}
+
+void ge::Assets::upload_textures(ge::CommandBuffer& co)
+{
+	for (auto const &i : to_be_loaded) {
+		textures.emplace_back();
+		textures.rbegin()->init_raw(co,
+			i.data, i.w, i.h, i.w * i.h * 4 * sizeof(uint8_t),
+			VK_FORMAT_R8G8B8A8_UNORM,
+			VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
+			VK_IMAGE_ASPECT_COLOR_BIT, 
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		);
+	}
 }

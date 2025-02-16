@@ -1,6 +1,8 @@
+#include <map>
 #include "Core.hpp"
 
-char const* model_name = "models/DamagedHelmet.glb";
+//char const* model_name = "models/DamagedHelmet.glb";
+char const* model_name = "models/akali.glb";
 
 Core::Core(void)
 {
@@ -23,17 +25,18 @@ Core::Core(void)
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_FORMAT_D32_SFLOAT
 	);
 
-	background.init_with_stbif(command_buffer, "models/background.hdr",
-		VK_FORMAT_R16G16B16A16_SFLOAT,
-		VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-		VK_IMAGE_ASPECT_COLOR_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-	);
+	//background.init_with_stbif(command_buffer, "models/background.hdr",
+	//	VK_FORMAT_R16G16B16A16_SFLOAT,
+	//	VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+	//	VK_IMAGE_ASPECT_COLOR_BIT,
+	//	VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+	//);
 
 	image_acquired.init(); finished_rendering.init();
 	in_flight.init();
 
 	render_pass.use_depth(depth_image);
+	//render_pass.set_clear_color({203.f, 190.f, 181.f});
 	render_pass.set_initial_layout(VK_IMAGE_LAYOUT_UNDEFINED);
 	render_pass.set_final_layout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 	render_pass.init();
@@ -41,28 +44,40 @@ Core::Core(void)
 	for (auto& i : ge::ctx::window.images)
 		i.create_framebuffer(render_pass);
 
-	ge::Assets::load_glb(model_name);
-	ge::Assets::init_materials(command_buffer);
+	ge::Assets::load_assimp(model_name);
+	ge::Assets::upload_textures(command_buffer);
+	//ge::Assets::load_glb(model_name);
+	//ge::Assets::init_materials(command_buffer);
 
 	sampler.init();
 
-	descriptors.add_set(1)
+	descriptors.add_set(ge::Assets::meshes.size())
 		.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)				// camera
 		.add_binding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)	// albedo
-		.add_binding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)	// normal
-		.add_binding(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)	// metallic
-		.add_binding(4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)	// emissive
-		.add_binding(5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)	// occlusion
-		.add_binding(6, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);	// background
+		.add_binding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT) 	// normal
+		//.add_binding(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT) 	// metallic
+		.add_binding(4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);	// emissive
+		//.add_binding(5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT); 	// occlusion
+		//.add_binding(6, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);	// background
 	descriptors.init();
 
-	descriptors.add_write(0, 0, 0, camera);
-	descriptors.add_write(0, 0, 1, ge::Assets::materials[0].albedo,		VK_IMAGE_LAYOUT_GENERAL, sampler);
-	descriptors.add_write(0, 0, 2, ge::Assets::materials[0].normal,		VK_IMAGE_LAYOUT_GENERAL, sampler);
-	descriptors.add_write(0, 0, 3, ge::Assets::materials[0].metallic,	VK_IMAGE_LAYOUT_GENERAL, sampler);
-	descriptors.add_write(0, 0, 4, ge::Assets::materials[0].emissive,	VK_IMAGE_LAYOUT_GENERAL, sampler);
-	descriptors.add_write(0, 0, 5, ge::Assets::materials[0].occlusion,	VK_IMAGE_LAYOUT_GENERAL, sampler);
-	descriptors.add_write(0, 0, 6, background, VK_IMAGE_LAYOUT_GENERAL, sampler);
+	for (int i = 0; i < ge::Assets::meshes.size(); i++) {
+		auto const& mesh = ge::Assets::meshes[i];
+		auto const& material = ge::Assets::materials[mesh->material_id];
+
+		descriptors.add_write(0, i, 0, camera);
+		//if (material.index_albedo)
+			//descriptors.add_write(0, i, 1, ge::Assets::textures[material.index_albedo], VK_IMAGE_LAYOUT_GENERAL, sampler);
+		if (material.index_normal)
+			descriptors.add_write(0, i, 1, ge::Assets::textures[material.index_normal], VK_IMAGE_LAYOUT_GENERAL, sampler);
+		//if (material.index_metallic)
+			//descriptors.add_write(0, i, 3, ge::Assets::textures[material.index_metallic], VK_IMAGE_LAYOUT_GENERAL, sampler);
+		if (material.index_emissive)
+			descriptors.add_write(0, i, 2, ge::Assets::textures[material.index_emissive], VK_IMAGE_LAYOUT_GENERAL, sampler);
+		//if (material.index_occlusion)
+			//descriptors.add_write(0, i, 5, ge::Assets::textures[material.index_occlusion], VK_IMAGE_LAYOUT_GENERAL, sampler);
+		//descriptors.add_write(0, i, 6, background, VK_IMAGE_LAYOUT_GENERAL, sampler);
+	}
 	descriptors.write();
 
 	ge::Shader v("shaders/vertex.spv", VK_SHADER_STAGE_VERTEX_BIT);
@@ -102,7 +117,11 @@ int Core::main(int ac, char **av)
 			vkCmdBindDescriptorSets(command_buffer.ptr, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				gp.layout, 0, 1, &descriptors.get_set(0, 0), 0, nullptr);
 
-			ge::Assets::meshes[model_name]->draw(command_buffer);
+			for (auto& mesh : ge::Assets::meshes) {
+				*(ge::Assets::material_s*)&camera.ubo.index_albedo = ge::Assets::materials[mesh->material_id];
+				camera.write_ubo();
+				mesh->draw(command_buffer);
+			}
 			
 			render_pass.end(command_buffer);
 		}

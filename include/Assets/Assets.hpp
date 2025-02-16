@@ -84,43 +84,52 @@ namespace ge {
 		Mesh(void);
 		~Mesh(void);
 
+		uint32_t material_id;
 		void draw(ge::CommandBuffer& command_buffer);
+		void load_vertices(std::vector<Vertex> const& vertices);
+		void load_indices(std::vector<unsigned int> const& indices);
 	private:
 		ge::Buffer vertex_data;
 		ge::Buffer index_data;
-		uint32_t material_id;
 	};
 
 	class Assets {
 	public:
+
 		Assets(void);
 		~Assets(void);
 		
 		static void clear(void);
 
-		struct material {
-			ge::Image albedo;
-			ge::Image normal;
-			ge::Image metallic;
-			ge::Image emissive;
-			ge::Image occlusion;
+		struct material_s {
+			uint32_t index_albedo; 
+			uint32_t index_normal; 
+			uint32_t index_metallic; 
+			uint32_t index_emissive; 
+			uint32_t index_occlusion; 
 		};
 
-		static void load_glb(char const* file);
-		static void init_materials(ge::CommandBuffer& co);
+		static void load_assimp(char const* file);
+		static void upload_textures(ge::CommandBuffer &co);
 
-		static std::unordered_map<std::string, Mesh::ptr> meshes;
-		static std::vector<material> materials;
+		static std::vector<Mesh::ptr> meshes;
+		static std::vector<material_s> materials;
+		static std::vector<ge::Image> textures;
 
 		static uint8_t* load_from_memory(uint8_t const* buffer, int len, int* x, int* y, int* comp, int req_comp);
 		static uint8_t* load_from_file(char const* file, int* x, int* y, int* comp, int req_comp);
-		static float* loadf_from_file(char const* file, int* x, int* y, int* comp, int req_comp);
-		static float* load_hdr_with_alpha(const char* filename, int& width, int& height, int& channels);
-
 
 	private:
+
+		struct texture_s {
+			int w = 0, h = 0, c = 0;
+			uint8_t* data = nullptr;
+		};
 		
-		static std::vector<tinygltf::Model> to_be_loaded;
+		static std::vector<texture_s> to_be_loaded; 
+		
+		static void load_assimp_vertices(void const * scene);
+		static void load_assimp_materials(void const * scene);
 
 		static void compute_tangent(Vertex* p, std::vector<uint32_t> const& indices);
 		static void load_gltf_texture(tinygltf::Model const& model, ge::CommandBuffer& co, ge::Image& m, int id);
