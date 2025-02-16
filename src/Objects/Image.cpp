@@ -68,7 +68,6 @@ void ge::Image::init_raw(ge::CommandBuffer& co, void const* data, uint32_t x, ui
 	init(usage, aspect, properties, format, VK_IMAGE_LAYOUT_UNDEFINED, { (uint32_t)x, (uint32_t)y });
 
 	ge::Buffer stagin_buffer;
-	std::cout << x * y * 4 << " vs " << size << std::endl;
 	stagin_buffer.init(
 		size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT

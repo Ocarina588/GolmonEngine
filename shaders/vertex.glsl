@@ -25,6 +25,11 @@ layout(location = 2) out vec3 Out_frag_pos;
 layout(location = 3) out vec3 Out_view_pos;
 layout(location = 4) out mat3 Out_TBN;
 layout(location = 7) out vec3 Out_normal;
+layout(location = 8) out uint index_albedo;
+layout(location = 9) out uint index_normal;
+layout(location = 10) out uint index_metallic;
+layout(location = 11) out uint index_emissive;
+layout(location = 12) out uint index_occlusion;
 
 void main() 
 {
@@ -41,6 +46,13 @@ void main()
     Out_light_pos = ubo.light_pos.rgb;
     Out_frag_pos = vec3(ubo.model * vec4(pos, 1.0));
     Out_view_pos = ubo.view_pos.rgb;
+    //Out_view_pos.z = ubo.index_albedo;
+
+    index_albedo = ubo.index_albedo;
+	index_normal = ubo.index_normal;
+	index_metallic = ubo.index_metallic;
+	index_emissive = ubo.index_emissive;
+	index_occlusion = ubo.index_occlusion;
 
     gl_Position = ubo.proj * ubo.view * ubo.model * vec4(pos, 1.0);
 }

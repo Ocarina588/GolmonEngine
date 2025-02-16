@@ -2,7 +2,8 @@
 #include "Core.hpp"
 
 //char const* model_name = "models/DamagedHelmet.glb";
-char const* model_name = "models/akali.glb";
+char const* model_name = "models/untitled.glb";
+//char const* model_name = "models/untitled.glb";
 
 Core::Core(void)
 {
@@ -55,9 +56,9 @@ Core::Core(void)
 		.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)				// camera
 		.add_binding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)	// albedo
 		.add_binding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT) 	// normal
-		//.add_binding(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT) 	// metallic
-		.add_binding(4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);	// emissive
-		//.add_binding(5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT); 	// occlusion
+		.add_binding(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT) 	// metallic
+		.add_binding(4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)	// emissive
+		.add_binding(5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT); 	// occlusion
 		//.add_binding(6, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);	// background
 	descriptors.init();
 
@@ -66,16 +67,11 @@ Core::Core(void)
 		auto const& material = ge::Assets::materials[mesh->material_id];
 
 		descriptors.add_write(0, i, 0, camera);
-		//if (material.index_albedo)
-			//descriptors.add_write(0, i, 1, ge::Assets::textures[material.index_albedo], VK_IMAGE_LAYOUT_GENERAL, sampler);
-		if (material.index_normal)
-			descriptors.add_write(0, i, 1, ge::Assets::textures[material.index_normal], VK_IMAGE_LAYOUT_GENERAL, sampler);
-		//if (material.index_metallic)
-			//descriptors.add_write(0, i, 3, ge::Assets::textures[material.index_metallic], VK_IMAGE_LAYOUT_GENERAL, sampler);
-		if (material.index_emissive)
-			descriptors.add_write(0, i, 2, ge::Assets::textures[material.index_emissive], VK_IMAGE_LAYOUT_GENERAL, sampler);
-		//if (material.index_occlusion)
-			//descriptors.add_write(0, i, 5, ge::Assets::textures[material.index_occlusion], VK_IMAGE_LAYOUT_GENERAL, sampler);
+		descriptors.add_write(0, i, 1, material.index_albedo ? (VkImageView)ge::Assets::textures[material.index_albedo - 1] : nullptr, VK_IMAGE_LAYOUT_GENERAL, sampler);
+		descriptors.add_write(0, i, 2, material.index_normal ? (VkImageView)ge::Assets::textures[material.index_normal - 1] : nullptr, VK_IMAGE_LAYOUT_GENERAL, sampler);
+		descriptors.add_write(0, i, 3, material.index_metallic ? (VkImageView)ge::Assets::textures[material.index_metallic - 1] : nullptr, VK_IMAGE_LAYOUT_GENERAL, sampler);
+		descriptors.add_write(0, i, 4, material.index_emissive ? (VkImageView)ge::Assets::textures[material.index_emissive - 1] : nullptr, VK_IMAGE_LAYOUT_GENERAL, sampler);
+		descriptors.add_write(0, i, 5, material.index_occlusion ? (VkImageView)ge::Assets::textures[material.index_occlusion - 1] : nullptr, VK_IMAGE_LAYOUT_GENERAL, sampler);
 		//descriptors.add_write(0, i, 6, background, VK_IMAGE_LAYOUT_GENERAL, sampler);
 	}
 	descriptors.write();

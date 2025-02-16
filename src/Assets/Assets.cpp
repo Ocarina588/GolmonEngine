@@ -128,6 +128,7 @@ void ge::Assets::clear(void)
 	meshes.clear();
 	materials.clear();
 	to_be_loaded.clear();
+	textures.clear();
 }
 
 void ge::Mesh::draw(ge::CommandBuffer& command_buffer)
@@ -247,7 +248,7 @@ void ge::Assets::load_assimp_materials(void const* s)
 		std::string name = texture_path.C_Str();
 		if (name[0] != '*')
 			throw std::runtime_error("no support for not emedded textures yet");
-		return std::stoi(name.substr(1));
+		return std::stoi(name.substr(1)) + 1;
 	};
 
 	for (int i = 0; i < (int)scene->mNumTextures; i++) {
@@ -264,9 +265,11 @@ void ge::Assets::load_assimp_materials(void const* s)
 	for (int i = 0; i < (int)scene->mNumMaterials; i++) {
 		auto const material = scene->mMaterials[i];
 		material_s m; 
-		m.index_albedo = get_material_texture_index(material, aiTextureType_SPECULAR);
-		m.index_emissive = get_material_texture_index(material, aiTextureType_EMISSIVE);
+		m.index_albedo = get_material_texture_index(material, aiTextureType_BASE_COLOR);
+		m.index_metallic = get_material_texture_index(material, aiTextureType_METALNESS);
 		m.index_normal = get_material_texture_index(material, aiTextureType_NORMALS);
+		m.index_occlusion = get_material_texture_index(material, aiTextureType_LIGHTMAP);
+		m.index_emissive = get_material_texture_index(material, aiTextureType_EMISSIVE);
 		materials.push_back(m); 
 	}
 }
