@@ -1,30 +1,31 @@
 #version 450
 
 #extension GL_EXT_nonuniform_qualifier : enable
-// Input from vertex shader
+
+layout(location = 0) out vec4 outColor;
+
 layout(location = 0) in vec2 uv;           // Texture coordinates
 layout(location = 1) in vec3 light_pos;    // Light position
 layout(location = 2) in vec3 frag_pos;     // Fragment position in world space
 layout(location = 3) in vec3 view_pos;     // Camera/view position
 layout(location = 4) in mat3 TBN;          // Tangent, Bitangent, Normal matrix
 layout(location = 7) in vec3 v_normal;     // Vertex normal
-
-// Texture indices for conditional loading
-layout(location = 8) flat in uint index_albedo;
-layout(location = 9) flat in uint index_normal;
-layout(location = 10) flat in uint index_metallic;
-layout(location = 11) flat in uint index_emissive;
-layout(location = 12) flat in uint index_occlusion;
-
-// Uniforms for textures
-
+//layout(location = 8) flat in uint index_albedo;
+//layout(location = 9) flat in uint index_normal;
+//layout(location = 10) flat in uint index_metallic;
+//layout(location = 11) flat in uint index_emissive;
+//layout(location = 12) flat in uint index_occlusion;
 
 layout(set = 0, binding = 1) uniform sampler2D textures[];
 
-// Output color
-layout(location = 0) out vec4 outColor;
+layout(push_constant) uniform PushConstants {
+    uint index_albedo;  
+    uint index_normal;
+    uint index_metallic;
+    uint index_emissive;
+    uint index_occlusion;
+} pc;
 
-// Constants
 const float PI = 3.14159265359;
 const float F0 = 0.04; // Base reflectivity for non-metals
 
@@ -52,14 +53,11 @@ vec3 SpecularBRDF(vec3 omega_i, vec3 omega_o, vec3 normal, float metallic, float
 
     // Microfacet distribution function
     float D = GGX_D(alpha, cosThetaH);
-
     // Fresnel term
     float F = FresnelSchlick(dot(omega_i, h), F0);
-
     // Geometry term
     float G = GGX_G(alpha, dot(omega_i, normal)) * GGX_G(alpha, dot(omega_o, normal));
-
-    // Specular BRDF formula: Return a `vec3` for the specular component
+    // Specular BRDF formula
     return vec3(D * F * G) / (4.0 * dot(omega_i, normal) * dot(omega_o, normal));
 }
 
@@ -70,27 +68,14 @@ vec3 DiffuseBRDF(vec3 omega_o, vec3 normal, vec3 albedo, float metallic) {
 }
 
 void main() {
-    // Get texture data (with some conditionals for texture availability)
-    vec3 albedo = vec3(1.0, 1.0, 1.0);    // Default to white if albedo is not available 
-    vec3 emissive = vec3(0.0, 0.0, 0.0);  // Default to black if emissive is not available 
-    vec3 normal = normalize(v_normal);    // Default normal 
-    float occlusion = 0.0; // Default to white if occlusion is not available
-    float metallic = 0.0;                 // Default metallic to non-metal
-    float roughness = 0.0;                // Default roughness to 0 (smooth)
-
-    // Sample textures if available
-    if (index_albedo > 0)
-        albedo = texture(textures[index_albedo - 1], uv).rgb;
-    if (index_emissive > 0)
-        emissive = texture(textures[index_emissive - 1], uv).rgb;
-    if (index_occlusion > 0)
-        occlusion = texture(textures[index_occlusion - 1], uv).r;
-    if (index_normal > 0)
-        normal = normalize(TBN * (texture(textures[index_normal - 1], uv).rgb * 2.0 - 1.0));
-    if (index_metallic > 0) {
-        metallic = texture(textures[index_metallic - 1], uv).g;
-        roughness = texture(textures[index_metallic - 1], uv).b;
-    }
+	vec3 albedo = pc.index_albedo > 0 ? texture(textures[pc.index_albedo - 1], uv).rgb : vec3(1.0, 1.0, 1.0);
+	vec3 emissive = pc.index_emissive > 0 ? texture(textures[pc.index_emissive - 1], uv).rgb : vec3(0.0, 0.0, 0.0);
+	vec3 normal = pc.index_normal > 0 ? normalize(TBN * (texture(textures[pc.index_normal - 1], uv).rgb * 2.0 - 1.0)) : normalize(v_normal);
+	float occlusion = pc.index_occlusion > 0 ? texture(textures[pc.index_occlusion - 1], uv).r : 1.0;
+	float metallic = pc.index_metallic > 0 ? texture(textures[pc.index_metallic - 1], uv).g : 0.0;
+	float roughness = pc.index_metallic > 0 ? texture(textures[pc.index_metallic - 1], uv).b : 0.5;
+   
+    /*
     // Compute the outgoing direction (view vector, assuming camera is at view_pos)
     vec3 omega_o = normalize(view_pos - frag_pos); // Camera/view vector
     vec3 omega_i = normalize(light_pos - frag_pos); // Light vector
@@ -99,11 +84,64 @@ void main() {
     vec3 diffuse = DiffuseBRDF(omega_o, normal, albedo, metallic);
     vec3 specular = SpecularBRDF(omega_i, omega_o, normal, metallic, roughness);
 
-    // Final color: Diffuse + Specular, optionally add emissive and occlusion
-    vec3 finalColor = diffuse + specular + emissive;
-    // Apply occlusion and output final fragment color
+    vec3 finalColor = diffuse + specular * 2 + emissive;
     outColor = vec4(finalColor * occlusion, 1.0);
-    outColor = outColor / (1 + outColor);
+
+    */
+
+    vec3 light_dir = normalize(light_pos - frag_pos);
+    vec3 view_dir = normalize(view_pos - frag_pos);
+    vec3 reflect_dir = reflect(-light_dir, normal);
+
+    float ambient_strength = 0.4f;
+	float specular_strength = 0.5f;
+    vec3 light_color = vec3(1.f, 1.f, 1.f);
+    //AMBIENT
+    vec3 ambient = ambient_strength * light_color + emissive;
+
+    //DIFFUSE
+    float diffuse_angle = max(0, dot(light_dir, normal));
+    vec3 diffuse = diffuse_angle * light_color;
+
+    //SPECULAR
+    float specular_angle = pow(max(dot(view_dir, reflect_dir), 0.0), 10);
+    vec3 specular = specular_strength * specular_angle * light_color;
+    //RESULT
+    vec3 final_result = (ambient + diffuse + specular) * albedo;
+
+    vec3 dir = normalize(view_pos - vec3(0.0, 0.0, 0.0));
+
+    outColor = vec4(final_result, 1.0f);
+
+    //if (index_albedo == 1)
+    //    outColor = vec4(1.0, 0.0, 0.0, 1.0);
+    //else if (index_albedo == 2)
+    //    outColor = vec4(0.0, 1.0, 0.0, 1.0);
+    //else if (index_albedo == 3)
+    //    outColor = vec4(0.0, 0.0, 1.0, 1.0);
+    //else if (index_albedo == 4)
+    //    outColor = vec4(1.0, 0.0, 1.0, 1.0);
+    //else if (index_albedo == 5)
+    //    outColor = vec4(0.0, 1.0, 1.0, 1.0);
+    //else if (index_albedo == 6)
+    //    outColor = vec4(1.0, 1.0, 1.0, 1.0);
+    //else if (index_albedo == 7)
+    //    outColor = vec4(1.0, 1.0, 0.0, 1.0);
+    //else if (index_albedo == 8)
+    //    outColor = vec4(0.0, 1.0, 0.0, 1.0);
+    //else if (index_albedo == 9)
+    //    outColor = vec4(1.0, 0.0, 0.0, 1.0);
+    //else if (index_albedo == 10)
+    //    outColor = vec4(1.0, 1.0, 1.0, 1.0);
+    //else if (index_albedo == 11)
+    //    outColor = vec4(0.0, 1.0, 1.0, 1.0);
+    //else if (index_albedo == 10)
+    //    outColor = vec4(0.0, 0.0, 0.0, 1.0);
+    //else if (index_albedo == 11)
+    //    outColor = vec4(1.0, 1.0, 0.0, 1.0);
+    //else if (index_albedo == 12)
+    //    outColor = vec4(1.0, 1.0, 0.0, 1.0);
+
 }
 
 /*

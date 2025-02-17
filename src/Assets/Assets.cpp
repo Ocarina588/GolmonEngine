@@ -276,6 +276,7 @@ void ge::Assets::load_assimp_materials(void const* s)
 		m.index_normal = get_material_texture_index(material, aiTextureType_NORMALS);
 		m.index_occlusion = get_material_texture_index(material, aiTextureType_LIGHTMAP);
 		m.index_emissive = get_material_texture_index(material, aiTextureType_EMISSIVE);
+
 		materials.push_back(m); 
 	}
 }

@@ -1,7 +1,7 @@
 #include <map>
 #include "Core.hpp"
 
-char const* model_name = "models/DamagedHelmet.glb";
+char const* model_name = "models/halo.glb";
 //char const* model_name = "models/untitled.glb";
 //char const* model_name = "models/untitled.glb";
 
@@ -47,6 +47,7 @@ Core::Core(void)
 
 	ge::Assets::load_assimp(model_name);
 	ge::Assets::upload_textures(command_buffer);
+	//std::cout << ge::Assets::materials[0].index_albedo << " " << ge::Assets::materials[0].index_normal << " " << ge::Assets::materials[0].index_metallic << " " << ge::Assets::materials[0].index_emissive << " " << ge::Assets::materials[0].index_occlusion << std::endl;
 	//ge::Assets::load_glb(model_name);
 	//ge::Assets::init_materials(command_buffer);
 
@@ -65,6 +66,7 @@ Core::Core(void)
 	ge::Shader v("shaders/vertex.spv", VK_SHADER_STAGE_VERTEX_BIT);
 	ge::Shader f("shaders/fragment.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
+;
 	gp.add_shader_stage(v.stage);
 	gp.add_shader_stage(f.stage);
 	gp.set_render_pass(render_pass);
@@ -75,6 +77,7 @@ Core::Core(void)
 		gp.add_layout(i);
 	gp.rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 	gp.rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+	gp.add_push_constant<ge::Assets::material_s>(VK_SHADER_STAGE_FRAGMENT_BIT);
 	gp.init();
 
 	ui.init(this);
@@ -103,8 +106,8 @@ int Core::main(int ac, char **av)
 				gp.layout, 0, 1, &descriptors.get_set(0, 0), 0, nullptr);
 
 			for (auto& mesh : ge::Assets::meshes) {
-				*(ge::Assets::material_s*)&camera.ubo.index_albedo = ge::Assets::materials[mesh->material_id];
-				camera.write_ubo();
+				vkCmdPushConstants(command_buffer.ptr, gp.layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 
+					sizeof(ge::Assets::material_s), &ge::Assets::materials[mesh->material_id]);
 				mesh->draw(command_buffer);
 			}
 			

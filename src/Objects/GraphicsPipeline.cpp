@@ -146,6 +146,8 @@ void GraphicsPipeline::init(void)
 	VkPipelineLayoutCreateInfo layout_create_info{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 	layout_create_info.setLayoutCount = static_cast<uint32_t>(layouts.size());
 	layout_create_info.pSetLayouts = layouts.data();
+	layout_create_info.pushConstantRangeCount = static_cast<uint32_t>(push_constants.size());
+	layout_create_info.pPushConstantRanges = push_constants.data();
 
 	if (vkCreatePipelineLayout(ctx::device.ptr, &layout_create_info, nullptr, &layout) != VK_SUCCESS)
 		throw std::runtime_error("failed to create pipeline layout");
@@ -180,9 +182,12 @@ void ge::ComputePipeline::init(void)
 {
 	VkComputePipelineCreateInfo create_info{ VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };
 	create_info.stage = stages[0];
+
 	VkPipelineLayoutCreateInfo layout_create_info{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 	layout_create_info.setLayoutCount = static_cast<uint32_t>(layouts.size());
 	layout_create_info.pSetLayouts = layouts.data();
+	layout_create_info.pushConstantRangeCount = static_cast<uint32_t>(push_constants.size());
+	layout_create_info.pPushConstantRanges = push_constants.data();
 
 	if (vkCreatePipelineLayout(ctx::device.ptr, &layout_create_info, nullptr, &layout) != VK_SUCCESS)
 		throw std::runtime_error("failed to create pipeline layout");

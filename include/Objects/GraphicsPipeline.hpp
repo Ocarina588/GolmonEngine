@@ -9,6 +9,14 @@ namespace ge {
 	class Image;
 	class CommandBuffer;
 
+	struct PushConstant {
+		uint32_t index_albedo;
+		uint32_t index_normal;
+		uint32_t index_metallic;
+		uint32_t index_emissive;
+		uint32_t index_occlusion;
+	};
+
 	class RenderPass {
 	public:
 		friend class GraphicsPipeline;
@@ -49,6 +57,12 @@ namespace ge {
 		Pipeline(void);
 		~Pipeline(void);
 
+		template<class T> void add_push_constant(VkShaderStageFlags stage) {
+			VkPushConstantRange range{};
+			range.stageFlags = stage;
+			range.size = sizeof(T);
+			push_constants.push_back(range);
+		}
 		inline void add_shader_stage(VkPipelineShaderStageCreateInfo i) { stages.push_back(i); }
 		inline void add_binding(VkVertexInputBindingDescription i) { bindings.push_back(i); }
 		inline void add_attribute(VkVertexInputAttributeDescription i) { attributes.push_back(i); }
@@ -61,6 +75,7 @@ namespace ge {
 		std::vector<VkVertexInputBindingDescription> bindings;
 		std::vector<VkVertexInputAttributeDescription> attributes;
 		std::vector<VkDescriptorSetLayout> layouts;
+		std::vector<VkPushConstantRange> push_constants;
 		VkPipelineLayout layout = nullptr;
 		VkPipeline ptr = nullptr;
 	};
