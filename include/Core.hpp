@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GolmonEngine.hpp"
+#include "UI/UI.hpp"
 
 class Core {
 public:
@@ -24,4 +25,6 @@ public:
 	ge::RenderPass render_pass;
 	ge::DescriptorPool descriptors;
 	ge::GraphicsPipeline gp;
+	ge::UI ui;
+
 };

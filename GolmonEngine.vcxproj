@@ -145,6 +145,13 @@
     <ClCompile Include="src\Events.cpp" />
     <ClCompile Include="src\GolmonEngine.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="src\imgui\imgui.cpp" />
+    <ClCompile Include="src\imgui\imgui_demo.cpp" />
+    <ClCompile Include="src\imgui\imgui_draw.cpp" />
+    <ClCompile Include="src\imgui\imgui_impl_glfw.cpp" />
+    <ClCompile Include="src\imgui\imgui_impl_vulkan.cpp" />
+    <ClCompile Include="src\imgui\imgui_tables.cpp" />
+    <ClCompile Include="src\imgui\imgui_widgets.cpp" />
     <ClCompile Include="src\Objects\Buffer.cpp" />
     <ClCompile Include="src\Objects\Camera.cpp" />
     <ClCompile Include="src\Objects\Commands.cpp" />
@@ -153,6 +160,7 @@
     <ClCompile Include="src\Objects\Image.cpp" />
     <ClCompile Include="src\Objects\Shader.cpp" />
     <ClCompile Include="src\Objects\Sync.cpp" />
+    <ClCompile Include="src\UI\UI.cpp" />
     <ClCompile Include="src\utils.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -173,11 +181,20 @@
     <ClInclude Include="include\Objects\Image.hpp" />
     <ClInclude Include="include\Objects\Shader.hpp" />
     <ClInclude Include="include\Objects\Sync.hpp" />
+    <ClInclude Include="include\UI\UI.hpp" />
     <ClInclude Include="include\utils.hpp" />
     <ClInclude Include="libraries\loader\json.hpp" />
     <ClInclude Include="libraries\loader\stb_image.h" />
     <ClInclude Include="libraries\loader\stb_image_write.h" />
     <ClInclude Include="libraries\loader\tiny_gltf.h" />
+    <ClInclude Include="src\imgui\imconfig.h" />
+    <ClInclude Include="src\imgui\imgui.h" />
+    <ClInclude Include="src\imgui\imgui_impl_glfw.h" />
+    <ClInclude Include="src\imgui\imgui_impl_vulkan.h" />
+    <ClInclude Include="src\imgui\imgui_internal.h" />
+    <ClInclude Include="src\imgui\imstb_rectpack.h" />
+    <ClInclude Include="src\imgui\imstb_textedit.h" />
+    <ClInclude Include="src\imgui\imstb_truetype.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

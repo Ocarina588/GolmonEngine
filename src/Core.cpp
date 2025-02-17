@@ -1,8 +1,8 @@
 #include <map>
 #include "Core.hpp"
 
-//char const* model_name = "models/DamagedHelmet.glb";
-char const* model_name = "models/untitled.glb";
+char const* model_name = "models/DamagedHelmet.glb";
+//char const* model_name = "models/untitled.glb";
 //char const* model_name = "models/untitled.glb";
 
 Core::Core(void)
@@ -88,7 +88,10 @@ Core::Core(void)
 	for (auto i : descriptors.layouts)
 		gp.add_layout(i);
 	gp.rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+	gp.rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
 	gp.init();
+
+	ui.init(render_pass.ptr);;
 }
 
 Core::~Core(void)
@@ -119,6 +122,7 @@ int Core::main(int ac, char **av)
 				mesh->draw(command_buffer);
 			}
 			
+			ui.render(command_buffer.ptr);
 			render_pass.end(command_buffer);
 		}
 		command_buffer.end();
