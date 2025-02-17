@@ -54,26 +54,12 @@ Core::Core(void)
 
 	descriptors.add_set(ge::Assets::meshes.size())
 		.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)				// camera
-		.add_binding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)	// albedo
-		.add_binding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT) 	// normal
-		.add_binding(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT) 	// metallic
-		.add_binding(4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)	// emissive
-		.add_binding(5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT); 	// occlusion
-		//.add_binding(6, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);	// background
+		.add_binding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT,	// array of textures
+			ge::Assets::textures.size()); 
 	descriptors.init();
 
-	for (int i = 0; i < ge::Assets::meshes.size(); i++) {
-		auto const& mesh = ge::Assets::meshes[i];
-		auto const& material = ge::Assets::materials[mesh->material_id];
-
-		descriptors.add_write(0, i, 0, camera);
-		descriptors.add_write(0, i, 1, material.index_albedo ? (VkImageView)ge::Assets::textures[material.index_albedo - 1] : nullptr, VK_IMAGE_LAYOUT_GENERAL, sampler);
-		descriptors.add_write(0, i, 2, material.index_normal ? (VkImageView)ge::Assets::textures[material.index_normal - 1] : nullptr, VK_IMAGE_LAYOUT_GENERAL, sampler);
-		descriptors.add_write(0, i, 3, material.index_metallic ? (VkImageView)ge::Assets::textures[material.index_metallic - 1] : nullptr, VK_IMAGE_LAYOUT_GENERAL, sampler);
-		descriptors.add_write(0, i, 4, material.index_emissive ? (VkImageView)ge::Assets::textures[material.index_emissive - 1] : nullptr, VK_IMAGE_LAYOUT_GENERAL, sampler);
-		descriptors.add_write(0, i, 5, material.index_occlusion ? (VkImageView)ge::Assets::textures[material.index_occlusion - 1] : nullptr, VK_IMAGE_LAYOUT_GENERAL, sampler);
-		//descriptors.add_write(0, i, 6, background, VK_IMAGE_LAYOUT_GENERAL, sampler);
-	}
+	descriptors.add_write(0, 0, 0, camera);
+	descriptors.add_writes(0, 0, 1, ge::Assets::textures, sampler, VK_IMAGE_LAYOUT_GENERAL);
 	descriptors.write();
 
 	ge::Shader v("shaders/vertex.spv", VK_SHADER_STAGE_VERTEX_BIT);
@@ -91,7 +77,7 @@ Core::Core(void)
 	gp.rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
 	gp.init();
 
-	ui.init(render_pass.ptr);;
+	ui.init(this);
 }
 
 Core::~Core(void)

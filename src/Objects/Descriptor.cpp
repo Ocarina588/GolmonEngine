@@ -94,8 +94,12 @@ void DescriptorPool::add_write(uint32_t set, uint32_t index, uint32_t binding_in
 	writes.push_back(ws);
 }
 
-void DescriptorPool::add_writes(uint32_t set, uint32_t index, uint32_t binding_index, std::vector<VkDescriptorImageInfo>& infos)
+void DescriptorPool::add_writes(uint32_t set, uint32_t index, uint32_t binding_index, std::vector<ge::Image> const& images, VkSampler sampler, VkImageLayout layout)
 {
+	std::vector<VkDescriptorImageInfo> infos;
+	for (auto& i : images)
+		infos.emplace_back(sampler, i.view, layout);
+
 	VkWriteDescriptorSet ws{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
 	ws.dstSet = get_set(set, index);
 	ws.dstBinding = bindings[set][binding_index].binding;

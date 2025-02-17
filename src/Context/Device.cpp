@@ -18,8 +18,7 @@ void ge::Device::init(void)
 	VkDeviceCreateInfo create_info{ VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
 	uint32_t count = 0;
 
-	VkPhysicalDeviceFeatures deviceFeatures{};
-	deviceFeatures.geometryShader = VK_TRUE;
+
 
 	vkEnumeratePhysicalDevices(Vk::instance, &count, nullptr);
 	std::vector<VkPhysicalDevice> physical_devices(count);
@@ -34,11 +33,23 @@ void ge::Device::init(void)
 
 	auto queue_infos = choose_queues();
 
+	VkPhysicalDeviceFeatures deviceFeatures{};
+	deviceFeatures.geometryShader = VK_TRUE;
+
+	_extensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
+	VkPhysicalDeviceDescriptorIndexingFeatures indexing_features = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES };
+	indexing_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE; 
+	indexing_features.runtimeDescriptorArray = VK_TRUE;
+
+	VkPhysicalDeviceFeatures2 features2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+	features2.features = features;
+	features2.pNext = &indexing_features;
+
 	create_info.enabledExtensionCount = static_cast<uint32_t>(_extensions.size()); 
 	create_info.ppEnabledExtensionNames = _extensions.data();
 	create_info.queueCreateInfoCount = static_cast<uint32_t>(queue_infos.size());
 	create_info.pQueueCreateInfos = queue_infos.data();
-	create_info.pEnabledFeatures = &features;
+	create_info.pNext = &features2;
 
 	if (vkCreateDevice(physical_ptr, &create_info, nullptr, &ptr) != VK_SUCCESS)
 		throw std::runtime_error("failed to create device");

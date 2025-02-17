@@ -1,5 +1,6 @@
 #version 450
 
+#extension GL_EXT_nonuniform_qualifier : enable
 // Input from vertex shader
 layout(location = 0) in vec2 uv;           // Texture coordinates
 layout(location = 1) in vec3 light_pos;    // Light position
@@ -16,11 +17,9 @@ layout(location = 11) flat in uint index_emissive;
 layout(location = 12) flat in uint index_occlusion;
 
 // Uniforms for textures
-layout(set = 0, binding = 1) uniform sampler2D t_albedo;
-layout(set = 0, binding = 2) uniform sampler2D t_normal;
-layout(set = 0, binding = 3) uniform sampler2D t_metallic;
-layout(set = 0, binding = 4) uniform sampler2D t_emissive;
-layout(set = 0, binding = 5) uniform sampler2D t_occlusion;
+
+
+layout(set = 0, binding = 1) uniform sampler2D textures[];
 
 // Output color
 layout(location = 0) out vec4 outColor;
@@ -81,16 +80,16 @@ void main() {
 
     // Sample textures if available
     if (index_albedo > 0)
-        albedo = texture(t_albedo, uv).rgb;
+        albedo = texture(textures[index_albedo - 1], uv).rgb;
     if (index_emissive > 0)
-        emissive = texture(t_emissive, uv).rgb;
+        emissive = texture(textures[index_emissive - 1], uv).rgb;
     if (index_occlusion > 0)
-        occlusion = texture(t_occlusion, uv).r;
+        occlusion = texture(textures[index_occlusion - 1], uv).r;
     if (index_normal > 0)
-        normal = normalize(TBN * (texture(t_normal, uv).rgb * 2.0 - 1.0));
+        normal = normalize(TBN * (texture(textures[index_normal - 1], uv).rgb * 2.0 - 1.0));
     if (index_metallic > 0) {
-        metallic = texture(t_metallic, uv).g;
-        roughness = texture(t_metallic, uv).b;
+        metallic = texture(textures[index_metallic - 1], uv).g;
+        roughness = texture(textures[index_metallic - 1], uv).b;
     }
     // Compute the outgoing direction (view vector, assuming camera is at view_pos)
     vec3 omega_o = normalize(view_pos - frag_pos); // Camera/view vector

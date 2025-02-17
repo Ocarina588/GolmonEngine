@@ -187,6 +187,12 @@ void ge::Assets::load_assimp(char const* file_name)
 
 }
 
+void ge::Assets::load_model(char const* file)
+{
+	clear();
+	load_assimp(file);
+}
+
 void ge::Assets::load_assimp_vertices(void const* s)
 {
 	aiScene const* scene = (aiScene const *)s;

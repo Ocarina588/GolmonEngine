@@ -38,9 +38,9 @@ namespace ge {
 		static VkFramebuffer create_framebuffer(VkImageView view, ge::RenderPass& render_pass, VkExtent2D extent = {});
 
 		VkFormat format = VK_FORMAT_UNDEFINED;
+		VkImageView view = nullptr;
 	private:
 		VkImage ptr = nullptr;
-		VkImageView view = nullptr;
 		VkDeviceMemory memory = nullptr;
 		VkFramebuffer framebuffer = nullptr;
 

@@ -13,6 +13,9 @@ ge::UI::UI(void)
 
 ge::UI::~UI(void)
 {
+	ImGui_ImplVulkan_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
 	vkDestroyDescriptorPool(ge::ctx::device, imguiPool, nullptr);
 }
 
@@ -36,8 +39,40 @@ std::string ask_file(char const* filter)
 	return file;
 }
 
+void ge::UI::render(VkCommandBuffer cmd)
+{
+	ImGui_ImplVulkan_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
 
-void ge::UI::init(VkRenderPass render_pass) {
+	//ImGui::ShowDemoWindow();
+
+
+	if (ImGui::BeginMainMenuBar()) {
+
+
+		if (ImGui::BeginMenu("File")) {
+			if (ImGui::MenuItem("Open file"));
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("Camera")) {
+			if (ImGui::MenuItem("Scene"));
+			if (ImGui::MenuItem("Player"));
+			ImGui::EndMenu();
+		}
+
+
+	}
+
+	ImGui::EndMainMenuBar();
+
+	ImGui::Render();
+	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
+}
+
+void ge::UI::init(Core *core) {
+	core = core;
 	ImGui::CreateContext();
 	ImGui_ImplGlfw_InitForVulkan(ge::ctx::window, true);
 
@@ -70,52 +105,16 @@ void ge::UI::init(VkRenderPass render_pass) {
 	init_info.DescriptorPool = imguiPool;
 	init_info.MinImageCount = ge::ctx::window.capabilites.minImageCount;
 	init_info.ImageCount = ge::ctx::window.capabilites.minImageCount + 1;
-	init_info.RenderPass = render_pass;
+	init_info.RenderPass = core->render_pass.ptr;
 	ImGui_ImplVulkan_Init(&init_info);
 
 	ImGui_ImplVulkan_CreateFontsTexture();
 }
 
-void ge::UI::render(VkCommandBuffer cmd)
+
+/*
+void ge::UI::render(VkCommandBuffer cmd) 
 {
-	ImGui_ImplVulkan_NewFrame();
-	ImGui_ImplGlfw_NewFrame();
-	ImGui::NewFrame();
-
-	//ImGui::ShowDemoWindow();
-
-
-	if (ImGui::BeginMainMenuBar()) {
-
-
-		if (ImGui::BeginMenu("File")) {
-			if (ImGui::MenuItem("Open file")) ask_file("");;// file_to_load = ask_file("").c_str();
-			ImGui::EndMenu();
-		}
-
-		//ImGui::ShowDemoWindow();
-
-		//if (ImGui::BeginMenu("Project")) {
-		//	if (ImGui::MenuItem("Terrain")) {
-		//		terrain = std::make_shared<engine::Terrain>(std::make_shared<engine::Perlin>(std::time(NULL)));
-		//		mode = true;
-		//	}
-		//	if (ImGui::MenuItem("Rubik's Cube"))
-		//		mode = false;
-		//	ImGui::EndMenu();
-
-		//}
-
-		if (ImGui::BeginMenu("Camera")) {
-			if (ImGui::MenuItem("Scene"));
-			if (ImGui::MenuItem("Player"));
-			ImGui::EndMenu();
-		}
-
-
-		ImGui::EndMainMenuBar();
-	}
-
-	ImGui::Render();
-	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
+	
 }
+*/

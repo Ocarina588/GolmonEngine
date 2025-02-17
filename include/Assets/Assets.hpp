@@ -111,6 +111,7 @@ namespace ge {
 
 		static void load_assimp(char const* file);
 		static void upload_textures(ge::CommandBuffer &co);
+		static void load_model(char const* file);
 
 		static std::vector<Mesh::ptr> meshes;
 		static std::vector<material_s> materials;
