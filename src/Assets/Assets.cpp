@@ -248,7 +248,7 @@ void ge::Assets::load_assimp_materials(void const* s)
 	aiScene const* scene = (aiScene const*)s;
 
 	auto get_material_texture_index = [&](aiMaterial const* material, aiTextureType type) -> uint32_t {
-		if (material->GetTextureCount(type) <= 0) return 0;
+		if (material->GetTextureCount(type) <= 0) return 42;
 		aiString texture_path;
 		if (material->GetTexture(type, 0, &texture_path) != aiReturn_SUCCESS)
 			throw std::runtime_error("internal error while loading textures");

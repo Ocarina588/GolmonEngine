@@ -1,13 +1,13 @@
 #include <map>
 #include "Core.hpp"
 
-char const* model_name = "models/dreamsong.glb";
+char const* model_name = "models/journey.glb";
 //char const* model_name = "models/untitled.glb";
 //char const* model_name = "models/untitled.glb";
 
 Core::Core(void)
 {
-	ge::ctx::set_extent(1280, 720);
+	ge::ctx::set_extent(1600, 1000);
 	ge::ctx::use_window("Vulkan App");
 	ge::ctx::set_mode(VK_PRESENT_MODE_IMMEDIATE_KHR);
 	ge::ctx::use_gpu(0); 
@@ -32,7 +32,7 @@ Core::Core(void)
 	in_flight.init();
 
 	render_pass.use_depth(depth_image);
-	//render_pass.set_clear_color({203.f, 190.f, 181.f});
+	render_pass.set_clear_color({203.f, 190.f, 181.f});
 	render_pass.set_initial_layout(VK_IMAGE_LAYOUT_UNDEFINED);
 	render_pass.set_final_layout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 	render_pass.init();
@@ -70,7 +70,7 @@ Core::Core(void)
 	for (auto i : descriptors.layouts)
 		gp.add_layout(i);
 	gp.rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-	gp.rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+	//gp.rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
 	gp.add_push_constant<ge::Assets::material_s>(VK_SHADER_STAGE_FRAGMENT_BIT);
 	gp.init();
 

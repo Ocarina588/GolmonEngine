@@ -12,7 +12,7 @@ ge::Camera::~Camera(void)
 
 void ge::Camera::init(void)
 {
-	pos = { 0.f, -0.2f, -1.f };
+	pos = { 0.f, 0.f, 2.f };
 	target = { 0.f, 0.f, 0.f };
 
 	ubo.proj = glm::perspective(glm::radians(45.0f), ge::ctx::device.extent.width /
@@ -38,8 +38,8 @@ void ge::Camera::update(void)
 	ubo.light_pos = glm::vec4(light_pos, 1.f);
 	ubo.view_pos = glm::vec4(pos, 1.f);
 	ubo.view = glm::lookAt(pos, target, world_up);
-	ubo.model = glm::mat4(1.f);
-	ubo.model = glm::rotate(ubo.model, 0.5f * dt * glm::radians(90.f), glm::vec3(0.f, 1.f, 0.f));
+	//ubo.model = glm::mat4(1.f);
+	//ubo.model = glm::rotate(ubo.model, 0.5f * dt * glm::radians(90.f), glm::vec3(0.f, 1.f, 0.f));
 	//ubo.model = glm::rotate(ubo.model, glm::radians(90.f), glm::vec3(1.f, 0.f, 0.f));
 	//ge::Camera::rotate_around_point(ubo.light_pos)
 	write_ubo();
@@ -63,10 +63,10 @@ void ge::Camera::process_mouse(double x, double y)
 	float speed = 3.f;
 	float dt = (float)ge::ctx::window.dt;
 	
-	//pos = rotate_around_point(pos, target, { 0.f, 1.f, 0.f }, -(float)x * speed * dt * glm::radians(90.f));
-	//pos = rotate_around_point(pos, target, right, (float)y * speed * dt * glm::radians(90.f));
-	ubo.model = glm::rotate(ubo.model, (float)x * speed * dt * glm::radians(90.f), glm::vec3(0.f, 1.f, 0.f));
-	ubo.model = glm::rotate(ubo.model, (float)y * speed * dt * glm::radians(90.f), right);
+	pos = rotate_around_point(pos, target, { 0.f, 1.f, 0.f }, -(float)x * speed * dt * glm::radians(90.f));
+	pos = rotate_around_point(pos, target, right, (float)y * speed * dt * glm::radians(90.f));
+	//ubo.model = glm::rotate(ubo.model, (float)x * speed * dt * glm::radians(90.f), glm::vec3(0.f, 1.f, 0.f));
+	//ubo.model = glm::rotate(ubo.model, (float)y * speed * dt * glm::radians(90.f), right);
 
 }
 

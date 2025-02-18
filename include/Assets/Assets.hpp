@@ -102,11 +102,14 @@ namespace ge {
 		static void clear(void);
 
 		struct material_s {
-			uint32_t index_albedo; 
-			uint32_t index_normal; 
-			uint32_t index_metallic; 
-			uint32_t index_emissive; 
-			uint32_t index_occlusion; 
+			uint32_t index_albedo = 42; 
+			uint32_t index_normal = 42; 
+			uint32_t index_metallic = 42; 
+			uint32_t index_roughness = 42;
+			uint32_t index_emissive = 42; 
+			uint32_t index_occlusion = 42; 
+			uint32_t index_debug = 42;
+			uint32_t light_equation = 42;
 		};
 
 		static void load_assimp(char const* file);

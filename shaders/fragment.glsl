@@ -18,8 +18,11 @@ layout(push_constant) uniform PushConstants {
     uint index_albedo;  
     uint index_normal;
     uint index_metallic;
+    uint index_roughness;
     uint index_emissive;
     uint index_occlusion;
+    uint index_debug;
+    uint light_equation;
 } pc;
 
 const float PI = 3.14159265359;
@@ -64,49 +67,59 @@ vec3 DiffuseBRDF(vec3 omega_o, vec3 normal, vec3 albedo, float metallic) {
 }
 
 void main() {
-	vec3  albedo    = pc.index_albedo    > 0 ? texture(textures[pc.index_albedo - 1], uv).rgb : vec3(1.0, 1.0, 1.0);
-	vec3  emissive  = pc.index_emissive  > 0 ? texture(textures[pc.index_emissive - 1], uv).rgb : vec3(0.0, 0.0, 0.0);
-	vec3  normal    = pc.index_normal    > 0 ? normalize(TBN * (texture(textures[pc.index_normal - 1], uv).rgb * 2.0 - 1.0)) : normalize(v_normal);
-	float occlusion = pc.index_occlusion > 0 ? texture(textures[pc.index_occlusion - 1], uv).r : 1.0;
-	float metallic  = pc.index_metallic  > 0 ? texture(textures[pc.index_metallic - 1], uv).g : 0.0;
-	float roughness = pc.index_metallic  > 0 ? texture(textures[pc.index_metallic - 1], uv).b : 0.5;
+	vec3  albedo    = pc.index_albedo    != 42 ? texture(textures[pc.index_albedo - 1], uv).rgb : vec3(1.0, 1.0, 1.0);
+	vec3  normal    = pc.index_normal    != 42 ? normalize(TBN * (texture(textures[pc.index_normal - 1], uv).rgb * 2.0 - 1.0)) : normalize(v_normal);
+	vec3  emissive  = pc.index_emissive  != 42 ? texture(textures[pc.index_emissive - 1], uv).rgb : vec3(0.0, 0.0, 0.0);
+	float occlusion = pc.index_occlusion != 42 ? texture(textures[pc.index_occlusion - 1], uv).r : 1.0;
+	float metallic  = pc.index_metallic  != 42 ? texture(textures[pc.index_metallic - 1], uv).g : 0.0;
+	float roughness = pc.index_metallic  != 42 ? texture(textures[pc.index_metallic - 1], uv).b : 0.5;
    
-
-    /*
-    // Compute the outgoing direction (view vector, assuming camera is at view_pos)
-    vec3 omega_o = normalize(view_pos - frag_pos); // Camera/view vector
-    vec3 omega_i = normalize(light_pos - frag_pos); // Light vector
-
-    // Compute the BRDF terms
-    vec3 diffuse = DiffuseBRDF(omega_o, normal, albedo, metallic);
-    vec3 specular = SpecularBRDF(omega_i, omega_o, normal, metallic, roughness);
-
-    final_result = diffuse + specular + emissive;
-    outColor = vec4(final_result * occlusion, 1.0);
+    if (pc.index_debug == 42)
+        outColor = vec4(0, 0, 0, 1);
+    else if (pc.index_debug > 0) {
+		if (pc.index_debug == pc.index_occlusion)
+			outColor = vec4(occlusion, occlusion, occlusion, 1);
+		else if (pc.index_debug == pc.index_metallic)
+			outColor = vec4(metallic, metallic, metallic, 1);
+		else if (pc.index_debug == pc.index_roughness)
+			outColor = vec4(roughness, roughness, roughness, 1);
+		else
+			outColor = vec4(texture(textures[pc.index_debug - 1], uv).rgb, 1);
+    }
+    if (pc.index_debug > 0)
+        return;
     
-    */
+    if (pc.light_equation == 1) {
+        // Compute the outgoing direction (view vector, assuming camera is at view_pos)
+        vec3 omega_o = normalize(view_pos - frag_pos); // Camera/view vector
+        vec3 omega_i = normalize(light_pos - frag_pos); // Light vector
+        //DISNEY BRDF
+        vec3 diffuse = DiffuseBRDF(omega_o, normal, albedo, metallic);
+        vec3 specular = SpecularBRDF(omega_i, omega_o, normal, metallic, roughness);
 
-    vec3 light_dir = normalize(light_pos - frag_pos);
-    vec3 view_dir = normalize(view_pos - frag_pos);
-    vec3 reflect_dir = reflect(-light_dir, normal);
+        vec3 final_result = diffuse + specular + emissive;
+        outColor = vec4(final_result * occlusion, 1.0);
+    }
+    else {
+        // PHONG MODEL
+        vec3 light_dir = normalize(light_pos - frag_pos);
+        vec3 view_dir = normalize(view_pos - frag_pos);
+        vec3 reflect_dir = reflect(-light_dir, normal);
 
-    float ambient_strength = 0.4f;
-	float specular_strength = 0.5f;
-    vec3 light_color = vec3(1.f, 1.f, 1.f);
-    //AMBIENT
-    vec3 ambient = ambient_strength * light_color + emissive;
+        float ambient_strength = 0.4f;
+        float specular_strength = 0.5f;
+        vec3 light_color = vec3(1.f, 1.f, 1.f);
+        
+        vec3 ambient = ambient_strength * light_color + emissive;
 
-    //DIFFUSE
-    float diffuse_angle = max(0, dot(light_dir, normal));
-    vec3 diffuse = diffuse_angle * light_color;
+        float diffuse_angle = max(0, dot(light_dir, normal));
+        vec3 diffuse = diffuse_angle * light_color;
 
-    //SPECULAR
-    float specular_angle = pow(max(dot(view_dir, reflect_dir), 0.0), 10);
-    vec3 specular = specular_strength * specular_angle * light_color;
-    //RESULT
-    vec3 final_result = (ambient + diffuse + specular) * albedo;
-
-    outColor = vec4(final_result, 1.0f);
+        float specular_angle = pow(max(dot(view_dir, reflect_dir), 0.0), 10);
+        vec3 specular = specular_strength * specular_angle * light_color;
+        
+        outColor = vec4((ambient + diffuse + specular) * albedo, 1.0f);
+    }
 }
 
 /*

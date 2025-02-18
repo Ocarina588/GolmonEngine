@@ -47,9 +47,7 @@ void ge::UI::render(VkCommandBuffer cmd)
 
 	//ImGui::ShowDemoWindow();
 
-
 	if (ImGui::BeginMainMenuBar()) {
-
 
 		if (ImGui::BeginMenu("File")) {
 			if (ImGui::MenuItem("Open file"));
@@ -62,13 +60,48 @@ void ge::UI::render(VkCommandBuffer cmd)
 			ImGui::EndMenu();
 		}
 
-
 	}
 
 	ImGui::EndMainMenuBar();
 
+
+	ImGuiIO& io = ImGui::GetIO();
+	static float sidePanelWidth = 300.0f; // Default width of the panel
+
+	// Position the window at the right side of the screen
+	ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - sidePanelWidth, 18));
+	ImGui::SetNextWindowSize(ImVec2(sidePanelWidth, io.DisplaySize.y));
+	ImGui::SetNextWindowSizeConstraints(ImVec2(100, io.DisplaySize.y), ImVec2(600, io.DisplaySize.y)); // Min:100px, Max:600px
+
+	ImGui::Begin("Side Panel", nullptr,
+		ImGuiWindowFlags_NoTitleBar |
+		ImGuiWindowFlags_NoMove |
+		ImGuiWindowFlags_NoCollapse
+	);
+
+	const char* render_pass_item_p[] = { "Combined", "Albedo", "Normal", "Mettalic", "Roughness", "Emissive", "Occlusion"};
+	static int currentItem = 0;  // The selected item index
+	ImGui::SetNextItemWidth(120);
+	if (ImGui::Combo("Render Pass", &currentItem, render_pass_item_p, IM_ARRAYSIZE(render_pass_item_p)))
+		render_pass_item = currentItem;
+	static int currentItema = 0;  // The selected item index
+	const char* light_equation_type_p[] = {"PHONG" ,"BRDF Disney"};
+	ImGui::SetNextItemWidth(120);
+	if (ImGui::Combo("Light Equation", &currentItema, light_equation_type_p, IM_ARRAYSIZE(light_equation_type_p)))
+		light_equation_type = currentItema;
+
+
+	ImGui::End();
+
 	ImGui::Render();
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
+
+	for (auto& m : ge::Assets::materials) {
+		uint32_t render_pass_item_map[] = {0, m.index_albedo, m.index_normal, m.index_metallic, m.index_roughness, m.index_emissive, m.index_occlusion };
+
+		m.index_debug = render_pass_item_map[render_pass_item];
+		m.light_equation = light_equation_type;
+	}
 }
 
 void ge::UI::init(Core *core) {
