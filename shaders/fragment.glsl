@@ -10,13 +10,9 @@ layout(location = 2) in vec3 frag_pos;     // Fragment position in world space
 layout(location = 3) in vec3 view_pos;     // Camera/view position
 layout(location = 4) in mat3 TBN;          // Tangent, Bitangent, Normal matrix
 layout(location = 7) in vec3 v_normal;     // Vertex normal
-//layout(location = 8) flat in uint index_albedo;
-//layout(location = 9) flat in uint index_normal;
-//layout(location = 10) flat in uint index_metallic;
-//layout(location = 11) flat in uint index_emissive;
-//layout(location = 12) flat in uint index_occlusion;
 
-layout(set = 0, binding = 1) uniform sampler2D textures[];
+layout(set = 0, binding = 1) uniform sampler2D background;
+layout(set = 0, binding = 2) uniform sampler2D textures[];
 
 layout(push_constant) uniform PushConstants {
     uint index_albedo;  
@@ -68,13 +64,14 @@ vec3 DiffuseBRDF(vec3 omega_o, vec3 normal, vec3 albedo, float metallic) {
 }
 
 void main() {
-	vec3 albedo = pc.index_albedo > 0 ? texture(textures[pc.index_albedo - 1], uv).rgb : vec3(1.0, 1.0, 1.0);
-	vec3 emissive = pc.index_emissive > 0 ? texture(textures[pc.index_emissive - 1], uv).rgb : vec3(0.0, 0.0, 0.0);
-	vec3 normal = pc.index_normal > 0 ? normalize(TBN * (texture(textures[pc.index_normal - 1], uv).rgb * 2.0 - 1.0)) : normalize(v_normal);
+	vec3  albedo    = pc.index_albedo    > 0 ? texture(textures[pc.index_albedo - 1], uv).rgb : vec3(1.0, 1.0, 1.0);
+	vec3  emissive  = pc.index_emissive  > 0 ? texture(textures[pc.index_emissive - 1], uv).rgb : vec3(0.0, 0.0, 0.0);
+	vec3  normal    = pc.index_normal    > 0 ? normalize(TBN * (texture(textures[pc.index_normal - 1], uv).rgb * 2.0 - 1.0)) : normalize(v_normal);
 	float occlusion = pc.index_occlusion > 0 ? texture(textures[pc.index_occlusion - 1], uv).r : 1.0;
-	float metallic = pc.index_metallic > 0 ? texture(textures[pc.index_metallic - 1], uv).g : 0.0;
-	float roughness = pc.index_metallic > 0 ? texture(textures[pc.index_metallic - 1], uv).b : 0.5;
+	float metallic  = pc.index_metallic  > 0 ? texture(textures[pc.index_metallic - 1], uv).g : 0.0;
+	float roughness = pc.index_metallic  > 0 ? texture(textures[pc.index_metallic - 1], uv).b : 0.5;
    
+
     /*
     // Compute the outgoing direction (view vector, assuming camera is at view_pos)
     vec3 omega_o = normalize(view_pos - frag_pos); // Camera/view vector
@@ -84,9 +81,9 @@ void main() {
     vec3 diffuse = DiffuseBRDF(omega_o, normal, albedo, metallic);
     vec3 specular = SpecularBRDF(omega_i, omega_o, normal, metallic, roughness);
 
-    vec3 finalColor = diffuse + specular * 2 + emissive;
-    outColor = vec4(finalColor * occlusion, 1.0);
-
+    final_result = diffuse + specular + emissive;
+    outColor = vec4(final_result * occlusion, 1.0);
+    
     */
 
     vec3 light_dir = normalize(light_pos - frag_pos);
@@ -109,39 +106,7 @@ void main() {
     //RESULT
     vec3 final_result = (ambient + diffuse + specular) * albedo;
 
-    vec3 dir = normalize(view_pos - vec3(0.0, 0.0, 0.0));
-
     outColor = vec4(final_result, 1.0f);
-
-    //if (index_albedo == 1)
-    //    outColor = vec4(1.0, 0.0, 0.0, 1.0);
-    //else if (index_albedo == 2)
-    //    outColor = vec4(0.0, 1.0, 0.0, 1.0);
-    //else if (index_albedo == 3)
-    //    outColor = vec4(0.0, 0.0, 1.0, 1.0);
-    //else if (index_albedo == 4)
-    //    outColor = vec4(1.0, 0.0, 1.0, 1.0);
-    //else if (index_albedo == 5)
-    //    outColor = vec4(0.0, 1.0, 1.0, 1.0);
-    //else if (index_albedo == 6)
-    //    outColor = vec4(1.0, 1.0, 1.0, 1.0);
-    //else if (index_albedo == 7)
-    //    outColor = vec4(1.0, 1.0, 0.0, 1.0);
-    //else if (index_albedo == 8)
-    //    outColor = vec4(0.0, 1.0, 0.0, 1.0);
-    //else if (index_albedo == 9)
-    //    outColor = vec4(1.0, 0.0, 0.0, 1.0);
-    //else if (index_albedo == 10)
-    //    outColor = vec4(1.0, 1.0, 1.0, 1.0);
-    //else if (index_albedo == 11)
-    //    outColor = vec4(0.0, 1.0, 1.0, 1.0);
-    //else if (index_albedo == 10)
-    //    outColor = vec4(0.0, 0.0, 0.0, 1.0);
-    //else if (index_albedo == 11)
-    //    outColor = vec4(1.0, 1.0, 0.0, 1.0);
-    //else if (index_albedo == 12)
-    //    outColor = vec4(1.0, 1.0, 0.0, 1.0);
-
 }
 
 /*

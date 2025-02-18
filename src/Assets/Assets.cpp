@@ -1,4 +1,5 @@
 #define TINYGLTF_IMPLEMENTATION
+#define TINYEXR_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
@@ -310,4 +311,9 @@ void ge::Assets::upload_textures(ge::CommandBuffer& co)
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
 	}
+}
+
+float* ge::Assets::read_filef(char const* file, int& w, int& h, int& c, int expected)
+{
+	return stbi_loadf(file, &w, &h, &c, expected);
 }

@@ -1,5 +1,6 @@
 #include "GolmonEngine.hpp"
 #include "Objects/Image.hpp"
+#include "Assets/Assets.hpp"
 
 using Vk = ge::ctx;
 
@@ -229,4 +230,21 @@ void ge::Image::barrier(CommandBuffer & buffer, VkImageLayout old, VkImageLayout
 	b.subresourceRange.layerCount = 1;
 
 	vkCmdPipelineBarrier(buffer.ptr, src, dst, 0, 0, nullptr, 0, nullptr, 1, &b);
+}
+
+void ge::Image::load_hdr(ge::CommandBuffer& co, char const* file_name)
+{
+	int width, height, channels;
+	float* image_data = ge::Assets::read_filef(file_name, width, height, channels, 4);
+	if (image_data == nullptr)
+		throw std::runtime_error("failed to open " + std::string(file_name));
+	else {
+		init_raw(co,
+			image_data, width, height, width * height * 4 * sizeof(float),
+			VK_FORMAT_R32G32B32A32_SFLOAT,
+			VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+			VK_IMAGE_ASPECT_COLOR_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		);
+	}
 }

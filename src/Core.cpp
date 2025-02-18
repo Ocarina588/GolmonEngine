@@ -1,7 +1,7 @@
 #include <map>
 #include "Core.hpp"
 
-char const* model_name = "models/halo.glb";
+char const* model_name = "models/dreamsong.glb";
 //char const* model_name = "models/untitled.glb";
 //char const* model_name = "models/untitled.glb";
 
@@ -26,12 +26,7 @@ Core::Core(void)
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_FORMAT_D32_SFLOAT
 	);
 
-	//background.init_with_stbif(command_buffer, "models/background.hdr",
-	//	VK_FORMAT_R16G16B16A16_SFLOAT,
-	//	VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-	//	VK_IMAGE_ASPECT_COLOR_BIT,
-	//	VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-	//);
+	background.load_hdr(command_buffer, "models/background.hdr");
 
 	image_acquired.init(); finished_rendering.init();
 	in_flight.init();
@@ -47,20 +42,19 @@ Core::Core(void)
 
 	ge::Assets::load_assimp(model_name);
 	ge::Assets::upload_textures(command_buffer);
-	//std::cout << ge::Assets::materials[0].index_albedo << " " << ge::Assets::materials[0].index_normal << " " << ge::Assets::materials[0].index_metallic << " " << ge::Assets::materials[0].index_emissive << " " << ge::Assets::materials[0].index_occlusion << std::endl;
-	//ge::Assets::load_glb(model_name);
-	//ge::Assets::init_materials(command_buffer);
 
 	sampler.init();
 
 	descriptors.add_set(ge::Assets::meshes.size())
 		.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)				// camera
-		.add_binding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT,	// array of textures
+		.add_binding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)	// background HDR
+		.add_binding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT,	// array of textures
 			ge::Assets::textures.size()); 
 	descriptors.init();
 
 	descriptors.add_write(0, 0, 0, camera);
-	descriptors.add_writes(0, 0, 1, ge::Assets::textures, sampler, VK_IMAGE_LAYOUT_GENERAL);
+	descriptors.add_write(0, 0, 1, background, sampler);
+	descriptors.add_writes(0, 0, 2, ge::Assets::textures, sampler);
 	descriptors.write();
 
 	ge::Shader v("shaders/vertex.spv", VK_SHADER_STAGE_VERTEX_BIT);

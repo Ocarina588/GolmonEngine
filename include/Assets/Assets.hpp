@@ -119,7 +119,7 @@ namespace ge {
 
 		static uint8_t* load_from_memory(uint8_t const* buffer, int len, int* x, int* y, int* comp, int req_comp);
 		static uint8_t* load_from_file(char const* file, int* x, int* y, int* comp, int req_comp);
-
+		static float* read_filef(char const* file, int& w, int& h, int& c, int expected);
 	private:
 
 		struct texture_s {

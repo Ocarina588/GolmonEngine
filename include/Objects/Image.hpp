@@ -26,6 +26,7 @@ namespace ge {
 			VkImageUsageFlags usage, VkImageAspectFlags aspect, VkMemoryPropertyFlags properties,
 			VkFormat format = VK_FORMAT_UNDEFINED, VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED, VkExtent2D extent = {}
 		);
+		void load_hdr(ge::CommandBuffer &co, char const* file_name);
 		void init(VkImage image, VkImageAspectFlags aspect, VkFormat format = VK_FORMAT_UNDEFINED);
 		void init_raw(ge::CommandBuffer& co, void const* data, uint32_t x, uint32_t y, uint32_t size, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, VkMemoryPropertyFlags properties, bool submit = true);
 		void init_with_stbi(ge::CommandBuffer& co, void const* data, uint32_t size, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, VkMemoryPropertyFlags properties);

@@ -80,7 +80,7 @@ void DescriptorPool::add_write(uint32_t set, uint32_t index, uint32_t binding_in
 	writes.push_back(ws);
 }
 
-void DescriptorPool::add_write(uint32_t set, uint32_t index, uint32_t binding_index, VkImageView view, VkImageLayout layout, VkSampler sampler)
+void DescriptorPool::add_write(uint32_t set, uint32_t index, uint32_t binding_index, VkImageView view, VkSampler sampler, VkImageLayout layout)
 {
 	images_info.emplace_back(sampler, view, VK_IMAGE_LAYOUT_GENERAL);
 

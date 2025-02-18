@@ -23,8 +23,7 @@ namespace ge {
 			return sets[offset + index];
 		}
 		void add_write(uint32_t set, uint32_t index, uint32_t binding_index, VkBuffer buffer);
-		void add_write(uint32_t set, uint32_t index, uint32_t binding_index, VkSampler sampler, VkImageView view, VkImageLayout layout);
-		void add_write(uint32_t set, uint32_t index, uint32_t binding_index, VkImageView view, VkImageLayout layout = VK_IMAGE_LAYOUT_GENERAL, VkSampler sampler = nullptr);
+		void add_write(uint32_t set, uint32_t index, uint32_t binding_index, VkImageView view, VkSampler sampler = nullptr, VkImageLayout layout = VK_IMAGE_LAYOUT_GENERAL);
 		void add_writes(uint32_t set, uint32_t index, uint32_t binding_index, std::vector<ge::Image> const& infos, VkSampler sampler, VkImageLayout layout = VK_IMAGE_LAYOUT_GENERAL);
 		void add_write(uint32_t set, uint32_t index, uint32_t binding_index, VkAccelerationStructureKHR& as);
 

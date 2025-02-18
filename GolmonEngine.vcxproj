@@ -166,6 +166,7 @@
   <ItemGroup>
     <ClInclude Include="include\Assets\Assets.hpp" />
     <ClInclude Include="include\Assets\mikktspace.h" />
+    <ClInclude Include="include\Assets\tinyexr.h" />
     <ClInclude Include="include\Context\Context.hpp" />
     <ClInclude Include="include\Context\Device.hpp" />
     <ClInclude Include="include\Context\Instance.hpp" />
