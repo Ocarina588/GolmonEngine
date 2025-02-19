@@ -35,6 +35,22 @@ float occlusion = pc.index_occlusion != 42 ? texture(textures[pc.index_occlusion
 float metallic = pc.index_metallic != 42 ? texture(textures[pc.index_metallic - 1], uv).b : 0.0;
 float roughness = pc.index_roughness != 42 ? texture(textures[pc.index_metallic - 1], uv).g : 0.5;
 
+vec3 sRGBToLinear(vec3 color) {
+    return mix(
+        color / 12.92,
+        pow((color + 0.055) / 1.055, vec3(2.4)),
+        step(vec3(0.04045), color)
+    );
+}
+
+vec3 linearToSRGB(vec3 color) {
+    return mix(
+        color * 12.92,
+        1.055 * pow(color, vec3(1.0 / 2.4)) - 0.055,
+        step(vec3(0.0031308), color)
+    );
+}
+
 void print_debug() {
     if (pc.index_debug == 1)
         outColor = vec4(albedo.rgb, 1.0);
@@ -92,12 +108,16 @@ vec3 f_specular(brdf_struct info)
 
 void main() {
     F0 = mix(vec3(0.04), albedo, metallic);
+    albedo = sRGBToLinear(albedo);
+
     if (pc.index_debug > 0)
         print_debug();
     else if (pc.light_equation == 0)
         render_equation_disney_BRDF();
     else
         phong();
+
+    outColor.rgb = linearToSRGB(outColor.rgb);
 }
 
 void render_equation_disney_BRDF(void)
@@ -123,8 +143,7 @@ void render_equation_disney_BRDF(void)
 
     outColor.rgb = BRDF * incoming_light * info.NdotL;
 	outColor.rgb += emissive;
-    //outColor.rgb *= occlusion;
-    outColor.rgb = pow(outColor.rgb, vec3(1.0 / 2.2));
+    outColor.rgb *= occlusion;
 }
 
 void phong(void)

@@ -1,7 +1,7 @@
 #include <map>
 #include "Core.hpp"
 
-char const* model_name = "models/Journey.glb";
+char const* model_name = "models/DamagedHelmet.glb";
 //char const* model_name = "models/untitled.glb";
 //char const* model_name = "models/untitled.glb";
 
