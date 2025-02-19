@@ -66,6 +66,7 @@ void ge::UI::render(VkCommandBuffer cmd)
 
 
 	ImGuiIO& io = ImGui::GetIO();
+	io.FontGlobalScale = 1.2f;
 	static float sidePanelWidth = 300.0f; // Default width of the panel
 
 	// Position the window at the right side of the screen
@@ -85,7 +86,7 @@ void ge::UI::render(VkCommandBuffer cmd)
 	if (ImGui::Combo("Render Pass", &currentItem, render_pass_item_p, IM_ARRAYSIZE(render_pass_item_p)))
 		render_pass_item = currentItem;
 	static int currentItema = 0;  // The selected item index
-	const char* light_equation_type_p[] = {"PHONG" ,"BRDF Disney"};
+	const char* light_equation_type_p[] = {"BRDF Disney", "PHONG"};
 	ImGui::SetNextItemWidth(120);
 	if (ImGui::Combo("Light Equation", &currentItema, light_equation_type_p, IM_ARRAYSIZE(light_equation_type_p)))
 		light_equation_type = currentItema;
@@ -97,9 +98,7 @@ void ge::UI::render(VkCommandBuffer cmd)
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
 
 	for (auto& m : ge::Assets::materials) {
-		uint32_t render_pass_item_map[] = {0, m.index_albedo, m.index_normal, m.index_metallic, m.index_roughness, m.index_emissive, m.index_occlusion };
-
-		m.index_debug = render_pass_item_map[render_pass_item];
+		m.index_debug = render_pass_item;
 		m.light_equation = light_equation_type;
 	}
 }

@@ -4,3 +4,4 @@ imgui.ini
 *.glb
 *.obj
 *.mtl
+assimp-vc143-mtd.dll

@@ -1,7 +1,7 @@
 #include <map>
 #include "Core.hpp"
 
-char const* model_name = "models/journey.glb";
+char const* model_name = "models/Journey.glb";
 //char const* model_name = "models/untitled.glb";
 //char const* model_name = "models/untitled.glb";
 
@@ -32,7 +32,7 @@ Core::Core(void)
 	in_flight.init();
 
 	render_pass.use_depth(depth_image);
-	render_pass.set_clear_color({203.f, 190.f, 181.f});
+	//render_pass.set_clear_color({203.f, 190.f, 181.f});
 	render_pass.set_initial_layout(VK_IMAGE_LAYOUT_UNDEFINED);
 	render_pass.set_final_layout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 	render_pass.init();
