@@ -14,6 +14,7 @@
 #include "Objects/Commands.hpp"
 #include "Objects/Buffer.hpp"
 #include "Objects/Camera.hpp"
+#include "Objects/CubeMap.hpp"
 
 #include "utils.hpp"
 

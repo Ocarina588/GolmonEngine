@@ -3,7 +3,7 @@
 #include <array>
 #include "GolmonEngine.hpp"
 #include "UI/UI.hpp"
-#define IN_FLIGHT_NUMBER 2
+#define IN_FLIGHT_NUMBER 3
 class Core {
 public:
 
@@ -17,8 +17,8 @@ public:
 	ge::Camera camera;
 	ge::Mesh mesh;
 	ge::Sampler sampler;
-
-	ge::Image depth_image, background;
+	ge::CubeMap cube_map;
+	ge::Image depth_image;
 	ge::CommandPool command_pool;
 
 	ge::PolyCommandBuffer<IN_FLIGHT_NUMBER> command_buffer;

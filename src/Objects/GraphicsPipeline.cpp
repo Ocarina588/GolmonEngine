@@ -12,6 +12,12 @@ RenderPass::~RenderPass(void)
 	vkDestroyRenderPass(ctx::device.ptr, ptr, nullptr);
 }
 
+void RenderPass::init(VkRenderPassCreateInfo i)
+{
+	if (vkCreateRenderPass(ctx::device.ptr, &i, nullptr, &ptr) != VK_SUCCESS)
+		throw std::runtime_error("failed to create render pass");
+}
+
 void RenderPass::init(void)
 {
 	VkRenderPassCreateInfo create_info{ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };

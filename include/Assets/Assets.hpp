@@ -1,3 +1,6 @@
+#ifndef TOTO
+#define TOTO
+
 #pragma once
 
 #include <tiny_gltf.h>
@@ -142,3 +145,5 @@ namespace ge {
 	};
 
 }
+
+#endif

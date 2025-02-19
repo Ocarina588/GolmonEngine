@@ -46,9 +46,9 @@ ge::Image::~Image(void)
 }
 
 void ge::Image::init(VkImageUsageFlags usage, VkImageAspectFlags aspect, VkMemoryPropertyFlags properties,
-	VkFormat _format, VkImageLayout layout, VkExtent2D extent)
+	VkFormat _format, VkImageLayout layout, VkExtent2D extent, uint32_t layers)
 {
-	ptr = create_image(usage, _format, layout, extent);
+	ptr = create_image(usage, _format, layout, extent, layers);
 	memory = create_memory(ptr, properties);
 
 	if (vkBindImageMemory(ctx::device.ptr, ptr, memory, 0) != VK_SUCCESS) 
@@ -121,7 +121,7 @@ void ge::Image::create_framebuffer(ge::RenderPass& render_pass, VkExtent2D exten
 	framebuffer = create_framebuffer(view, render_pass, extent);
 }
 
-VkImage ge::Image::create_image(VkImageUsageFlags usage, VkFormat _format, VkImageLayout layout, VkExtent2D extent)
+VkImage ge::Image::create_image(VkImageUsageFlags usage, VkFormat _format, VkImageLayout layout, VkExtent2D extent, uint32_t layers)
 {
 	VkImageCreateInfo create_info{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 	VkImage image = nullptr;
@@ -137,7 +137,7 @@ VkImage ge::Image::create_image(VkImageUsageFlags usage, VkFormat _format, VkIma
 	}
 	create_info.extent.depth = 1;
 	create_info.mipLevels = 1;
-	create_info.arrayLayers = 1;
+	create_info.arrayLayers = layers;
 	create_info.samples = VK_SAMPLE_COUNT_1_BIT;
 	create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
 	create_info.usage = usage;
@@ -150,7 +150,7 @@ VkImage ge::Image::create_image(VkImageUsageFlags usage, VkFormat _format, VkIma
 	return image;
 }
 
-VkImageView ge::Image::create_view(VkImage image, VkImageAspectFlags aspect, VkFormat format)
+VkImageView ge::Image::create_view(VkImage image, VkImageAspectFlags aspect, VkFormat format, uint32_t base_array_layers, uint32_t layers)
 {
 	VkImageView view = nullptr;
 	VkImageViewCreateInfo create_info{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
@@ -163,7 +163,7 @@ VkImageView ge::Image::create_view(VkImage image, VkImageAspectFlags aspect, VkF
 	create_info.subresourceRange.baseMipLevel = 0;
 	create_info.subresourceRange.levelCount = 1;
 	create_info.subresourceRange.baseArrayLayer = 0;
-	create_info.subresourceRange.layerCount = 1;
+	create_info.subresourceRange.layerCount = layers;
 
 	if (vkCreateImageView(Vk::device, &create_info, nullptr, &view) != VK_SUCCESS)
 		throw std::runtime_error("failed to create image view");

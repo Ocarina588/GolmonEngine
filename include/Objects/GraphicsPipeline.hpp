@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
+#include <vector>
 #include "Objects/Commands.hpp"
 
 namespace ge {
@@ -25,6 +26,7 @@ namespace ge {
 		~RenderPass(void);
 
 		void init(void);
+		void init(VkRenderPassCreateInfo i);
 
 		inline void use_depth(Image& _depth_image) { subpass_description.pDepthStencilAttachment = &depth_ref; depth_image = &_depth_image; }
 		inline void set_final_layout(VkImageLayout layout) { color_attachment.finalLayout = layout; }
@@ -34,6 +36,7 @@ namespace ge {
 		void end(CommandBuffer& buffer);
 
 		VkRenderPass ptr = nullptr;
+		VkRenderPassCreateInfo create_info = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
 	private:
 		VkAttachmentDescription color_attachment{
 			.samples = VK_SAMPLE_COUNT_1_BIT,
@@ -48,6 +51,7 @@ namespace ge {
 		VkAttachmentReference color_ref{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
 		VkAttachmentReference depth_ref{ 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
 		VkSubpassDescription subpass_description{};
+
 		VkClearValue clear_color = { {{0.f, 0.f, 0.f}} };
 		Image* depth_image = nullptr;
 	};

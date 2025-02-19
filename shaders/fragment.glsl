@@ -11,8 +11,7 @@ layout(location = 3) in vec3 view_pos;     // Camera/view position
 layout(location = 4) in mat3 TBN;          // Tangent, Bitangent, Normal matrix
 layout(location = 7) in vec3 v_normal;     // Vertex normal
 
-layout(set = 0, binding = 1) uniform sampler2D background;
-layout(set = 0, binding = 2) uniform sampler2D textures[];
+layout(set = 0, binding = 1) uniform sampler2D textures[];
 
 layout(push_constant) uniform PushConstants {
     uint index_albedo;  
@@ -113,7 +112,7 @@ void main() {
     if (pc.index_debug > 0)
         print_debug();
     else if (pc.light_equation == 0)
-        render_equation_disney_BRDF();
+		render_equation_disney_BRDF();
     else
         phong();
 

@@ -155,6 +155,7 @@
     <ClCompile Include="src\Objects\Buffer.cpp" />
     <ClCompile Include="src\Objects\Camera.cpp" />
     <ClCompile Include="src\Objects\Commands.cpp" />
+    <ClCompile Include="src\Objects\CubeMap.cpp" />
     <ClCompile Include="src\Objects\Descriptor.cpp" />
     <ClCompile Include="src\Objects\GraphicsPipeline.cpp" />
     <ClCompile Include="src\Objects\Image.cpp" />
@@ -177,6 +178,7 @@
     <ClInclude Include="include\Objects\Buffer.hpp" />
     <ClInclude Include="include\Objects\Camera.hpp" />
     <ClInclude Include="include\Objects\Commands.hpp" />
+    <ClInclude Include="include\Objects\CubeMap.hpp" />
     <ClInclude Include="include\Objects\Descriptor.hpp" />
     <ClInclude Include="include\Objects\GraphicsPipeline.hpp" />
     <ClInclude Include="include\Objects\Image.hpp" />

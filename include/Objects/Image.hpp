@@ -24,7 +24,7 @@ namespace ge {
 		operator VkFramebuffer () { return framebuffer; };
 		void init(
 			VkImageUsageFlags usage, VkImageAspectFlags aspect, VkMemoryPropertyFlags properties,
-			VkFormat format = VK_FORMAT_UNDEFINED, VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED, VkExtent2D extent = {}
+			VkFormat format = VK_FORMAT_UNDEFINED, VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED, VkExtent2D extent = {}, uint32_t layers = 1
 		);
 		void load_hdr(ge::CommandBuffer &co, char const* file_name);
 		void init(VkImage image, VkImageAspectFlags aspect, VkFormat format = VK_FORMAT_UNDEFINED);
@@ -33,8 +33,8 @@ namespace ge {
 		void create_framebuffer(ge::RenderPass& render_pass, VkExtent2D extent = {});
 		void barrier(CommandBuffer& buffer, VkImageLayout old, VkImageLayout newl, VkPipelineStageFlags src, VkPipelineStageFlags dst);
 
-		static VkImage create_image(VkImageUsageFlags usage, VkFormat format = VK_FORMAT_UNDEFINED, VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED, VkExtent2D extent = {});
-		static VkImageView create_view(VkImage image, VkImageAspectFlags aspect, VkFormat format = VK_FORMAT_UNDEFINED);
+		static VkImage create_image(VkImageUsageFlags usage, VkFormat format = VK_FORMAT_UNDEFINED, VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED, VkExtent2D extent = {}, uint32_t layers = 1);
+		static VkImageView create_view(VkImage image, VkImageAspectFlags aspect, VkFormat format = VK_FORMAT_UNDEFINED, uint32_t base_array_layer = 0, uint32_t layers = 1);
 		static VkDeviceMemory create_memory(VkImage image, VkMemoryPropertyFlags properties);
 		static VkFramebuffer create_framebuffer(VkImageView view, ge::RenderPass& render_pass, VkExtent2D extent = {});
 

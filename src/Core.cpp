@@ -24,7 +24,8 @@ Core::Core(void)
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_FORMAT_D32_SFLOAT
 	);
 
-	background.load_hdr(command_buffer, "models/background.hdr");
+	/*background.load_hdr(command_buffer, "models/background.hdr");*/
+	cube_map.init("models/background.hdr");
 
 	image_acquired.init(); finished_rendering.init();
 	in_flight.init();
@@ -45,14 +46,12 @@ Core::Core(void)
 
 	descriptors.add_set(ge::Assets::meshes.size())
 		.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)				// camera
-		.add_binding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)	// background HDR
-		.add_binding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT,	// array of textures
+		.add_binding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT,	// array of textures
 			ge::Assets::textures.size()); 
 	descriptors.init();
 
 	descriptors.add_write(0, 0, 0, camera);
-	descriptors.add_write(0, 0, 1, background, sampler);
-	descriptors.add_writes(0, 0, 2, ge::Assets::textures, sampler);
+	descriptors.add_writes(0, 0, 1, ge::Assets::textures, sampler);
 	descriptors.write();
 
 	ge::Shader v("shaders/vertex.spv", VK_SHADER_STAGE_VERTEX_BIT);
@@ -87,7 +86,7 @@ int Core::main(int ac, char **av)
 		ge::ctx::window.poll_events();
 		in_flight.wait();
 		updates();
-		ge::acquire_next_image(image_acquired);
+		ge::acquire_next_image(image_acquired); 
 
 		command_buffer.begin();
 		{
