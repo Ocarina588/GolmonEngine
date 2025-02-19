@@ -41,7 +41,7 @@ void ge::Camera::update(void)
 	ubo.view = glm::lookAt(pos, target, world_up);
 	ubo.model = glm::mat4(1.f);
 	//ubo.model = glm::rotate(ubo.model, 0.5f * dt * glm::radians(90.f), glm::vec3(0.f, 1.f, 0.f));
-	//ubo.model = glm::rotate(ubo.model, glm::radians(90.f), glm::vec3(1.f, 0.f, 0.f));
+	ubo.model = glm::rotate(ubo.model, glm::radians(90.f), glm::vec3(1.f, 0.f, 0.f));
 	//ge::Camera::rotate_around_point(ubo.light_pos)
 	write_ubo();
 }

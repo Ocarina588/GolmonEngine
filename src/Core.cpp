@@ -2,12 +2,10 @@
 #include "Core.hpp"
 
 char const* model_name = "models/DamagedHelmet.glb";
-//char const* model_name = "models/untitled.glb";
-//char const* model_name = "models/untitled.glb";
 
 Core::Core(void)
 {
-	ge::ctx::set_extent(1600, 1000);
+	ge::ctx::set_extent(1600, 900);
 	ge::ctx::use_window("Vulkan App");
 	ge::ctx::set_mode(VK_PRESENT_MODE_IMMEDIATE_KHR);
 	ge::ctx::use_gpu(0); 
@@ -96,22 +94,23 @@ int Core::main(int ac, char **av)
 			render_pass.begin(command_buffer);
 			gp.bind(command_buffer);
 
-			vkCmdBindDescriptorSets(command_buffer.ptr, VK_PIPELINE_BIND_POINT_GRAPHICS,
+			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				gp.layout, 0, 1, &descriptors.get_set(0, 0), 0, nullptr);
 
 			for (auto& mesh : ge::Assets::meshes) {
-				vkCmdPushConstants(command_buffer.ptr, gp.layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 
+				vkCmdPushConstants(command_buffer, gp.layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 
 					sizeof(ge::Assets::material_s), &ge::Assets::materials[mesh->material_id]);
 				mesh->draw(command_buffer);
 			}
 			
-			ui.render(command_buffer.ptr);
+			ui.render(command_buffer);
 			render_pass.end(command_buffer);
 		}
 		command_buffer.end();
 		command_buffer.submit(image_acquired, finished_rendering, in_flight);
 
 		ge::present(finished_rendering);
+		in_flight.next(); image_acquired.next(); finished_rendering.next(); command_buffer.next();
 	}
 
 	return 0;
