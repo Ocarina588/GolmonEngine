@@ -11,6 +11,7 @@ Core::Core(void)
 	ge::ctx::use_gpu(0); 
 	ge::ctx::use_debug(); 
 	ge::ctx::add_layer("VK_LAYER_LUNARG_monitor");
+	ge::ctx::add_instance_extension("VK_EXT_swapchain_colorspace");
 	ge::ctx::init();
 
 	events.init(this);
@@ -24,14 +25,11 @@ Core::Core(void)
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_FORMAT_D32_SFLOAT
 	);
 
-	/*background.load_hdr(command_buffer, "models/background.hdr");*/
-	cube_map.init("models/background.hdr");
-
 	image_acquired.init(); finished_rendering.init();
 	in_flight.init();
 
 	render_pass.use_depth(depth_image);
-	//render_pass.set_clear_color({203.f, 190.f, 181.f});
+	render_pass.set_clear_color({203.f, 190.f, 181.f});
 	render_pass.set_initial_layout(VK_IMAGE_LAYOUT_UNDEFINED);
 	render_pass.set_final_layout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 	render_pass.init();
@@ -39,6 +37,7 @@ Core::Core(void)
 	for (auto& i : ge::ctx::window.images)
 		i.create_framebuffer(render_pass);
 
+	ge::Assets::textures.emplace_back().load_hdr(command_buffer, "models/photo.hdr");
 	ge::Assets::load_assimp(model_name);
 	ge::Assets::upload_textures(command_buffer);
 
@@ -57,7 +56,6 @@ Core::Core(void)
 	ge::Shader v("shaders/vertex.spv", VK_SHADER_STAGE_VERTEX_BIT);
 	ge::Shader f("shaders/fragment.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
-;
 	gp.add_shader_stage(v.stage);
 	gp.add_shader_stage(f.stage);
 	gp.set_render_pass(render_pass);
@@ -67,11 +65,12 @@ Core::Core(void)
 	for (auto i : descriptors.layouts)
 		gp.add_layout(i);
 	gp.rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-	//gp.rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
 	gp.add_push_constant<ge::Assets::material_s>(VK_SHADER_STAGE_FRAGMENT_BIT);
 	gp.init();
 
 	ui.init(this);
+
+	init_cube_map();
 }
 
 Core::~Core(void)
@@ -79,6 +78,7 @@ Core::~Core(void)
 	ge::wait_idle(); 
 	ge::Assets::clear();
 }
+
 
 int Core::main(int ac, char **av)
 {
@@ -91,6 +91,12 @@ int Core::main(int ac, char **av)
 		command_buffer.begin();
 		{
 			render_pass.begin(command_buffer);
+
+			gb.bind(command_buffer);
+			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+				gb.layout, 0, 1, &descriptors.get_set(0, 0), 0, nullptr);
+			cube_map.draw(command_buffer);
+
 			gp.bind(command_buffer);
 
 			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -119,4 +125,45 @@ void Core::updates(void)
 {
 	ge::update_dt();
 	camera.update();
+}
+
+void Core::init_cube_map(void)
+{
+	std::vector<ge::Vertex> v = {
+		{ {-0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 1.0f} },  // Bottom-left
+		{ { 0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 1.0f} },  // Bottom-right
+		{ { 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f} },  // Top-right
+		{ {-0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f} },  // Top-left
+		{ {-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, -1.0f} },  // Bottom-left
+		{ { 0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, -1.0f} },  // Bottom-right
+		{ { 0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, -1.0f} },  // Top-right
+		{ {-0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, -1.0f} },  // Top-left
+	};
+
+	std::vector<uint32_t> i = {
+		0, 1, 2, 0, 2, 3,
+		4, 5, 6, 4, 6, 7,
+		0, 3, 7, 0, 7, 4,
+		1, 2, 6, 1, 6, 5,
+		0, 1, 5, 0, 5, 4,
+		3, 2, 6, 3, 6, 7,
+	};
+
+	cube_map.load_vertices(v);
+	cube_map.load_indices(i);
+
+	ge::Shader vc("shaders/cube_map.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+	ge::Shader fc("shaders/cube_map.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+
+	gb.add_shader_stage(vc.stage);
+	gb.add_shader_stage(fc.stage);
+	gb.set_render_pass(render_pass);
+	gb.add_binding(ge::Vertex::get_binding());
+	for (auto i : ge::Vertex::get_attribute())
+		gb.add_attribute(i);
+	for (auto i : descriptors.layouts)
+		gb.add_layout(i);
+	gb.rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+	gb.depthStencil.depthTestEnable = false;
+	gb.init();
 }

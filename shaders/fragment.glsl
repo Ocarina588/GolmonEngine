@@ -27,12 +27,12 @@ layout(push_constant) uniform PushConstants {
 void render_equation_disney_BRDF(void);
 void phong(void);
 
-vec3  albedo = pc.index_albedo != 42 ? texture(textures[pc.index_albedo - 1], uv).rgb : vec3(1.0, 1.0, 1.0);
-vec3  normal = pc.index_normal != 42 ? normalize(TBN * (texture(textures[pc.index_normal - 1], uv).rgb * 2.0 - 1.0)) : normalize(v_normal);
-vec3  emissive = pc.index_emissive != 42 ? texture(textures[pc.index_emissive - 1], uv).rgb : vec3(0.0, 0.0, 0.0);
-float occlusion = pc.index_occlusion != 42 ? texture(textures[pc.index_occlusion - 1], uv).g : 1.0;
-float metallic = pc.index_metallic != 42 ? texture(textures[pc.index_metallic - 1], uv).b : 0.0;
-float roughness = pc.index_roughness != 42 ? texture(textures[pc.index_metallic - 1], uv).g : 0.5;
+vec3  albedo = pc.index_albedo != 42 ? texture(textures[pc.index_albedo], uv).rgb : vec3(1.0, 1.0, 1.0);
+vec3  normal = pc.index_normal != 42 ? normalize(TBN * (texture(textures[pc.index_normal], uv).rgb * 2.0 - 1.0)) : normalize(v_normal);
+vec3  emissive = pc.index_emissive != 42 ? texture(textures[pc.index_emissive], uv).rgb : vec3(0.0, 0.0, 0.0);
+float occlusion = pc.index_occlusion != 42 ? texture(textures[pc.index_occlusion], uv).g : 1.0;
+float metallic = pc.index_metallic != 42 ? texture(textures[pc.index_metallic], uv).b : 0.0;
+float roughness = pc.index_roughness != 42 ? texture(textures[pc.index_metallic], uv).g : 0.5;
 
 vec3 sRGBToLinear(vec3 color) {
     return mix(
@@ -119,6 +119,16 @@ void main() {
     outColor.rgb = linearToSRGB(outColor.rgb);
 }
 
+const vec2 invAtan = vec2(0.1591, 0.3183);
+vec2 SampleSphericalMap(vec3 v)
+{
+    vec2 uv = vec2(atan(v.z, v.x), asin(v.y));
+    uv *= invAtan;
+    uv += 0.5;
+    uv.y *= -1;
+    return uv;
+}
+
 void render_equation_disney_BRDF(void)
 {
     F0 = mix(vec3(0.5), albedo, metallic);
@@ -133,11 +143,13 @@ void render_equation_disney_BRDF(void)
     info.NdotV = max(dot(info.N, info.V), 0.0);
     info.VdotH = max(dot(info.V, info.H), 0.0);
 
+    vec3 lc = texture(textures[0], SampleSphericalMap(reflect(frag_pos - view_pos, normal))).rgb;
+
     vec3 diffuse = albedo / PI;
     vec3 specular = vec3((GGX(info) * G_SMITH(info) * f_specular(info)) / (4.0 * info.NdotL * info.NdotV));
     vec3 kS = vec3(f_specular(info));
     vec3 kD = vec3(1.0) - kS * (1.0 - metallic);
-    vec3 BRDF = kD * diffuse + max(vec3(0), specular);
+    vec3 BRDF = lc * kD * diffuse + max(vec3(0), specular);
     vec3 incoming_light = vec3(1.0f, 1.0f, 1.0f);
 
     outColor.rgb = BRDF * incoming_light * info.NdotL;

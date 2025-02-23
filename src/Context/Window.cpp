@@ -27,6 +27,7 @@ void ge::Window::init(int w, int h, char const* t)
 {
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	//glfwWindowHint(GLFW_DECORATED, NULL);
 
 	if (!(ptr = glfwCreateWindow(w, h, t, nullptr, nullptr)))
 		throw std::runtime_error("failed to create window");
@@ -70,7 +71,7 @@ void ge::Window::init_swapchain(void)
 	create_info.minImageCount = Vk::window.capabilites.minImageCount + 1;
 	if (Vk::window.capabilites.maxImageCount && create_info.minImageCount > Vk::window.capabilites.maxImageCount)
 		create_info.minImageCount = Vk::window.capabilites.maxImageCount;
-	create_info.imageFormat = formats[0].format;
+	create_info.imageFormat =  formats[0].format;
 	create_info.imageColorSpace = formats[0].colorSpace;
 	create_info.imageExtent = get_extent();
 	create_info.imageExtent.width = std::clamp(create_info.imageExtent.width, 

@@ -15,7 +15,7 @@ void ge::Camera::init(void)
 	pos = { 0.f, 0.f, 3.f };
 	target = { 0.f, 0.f, 0.f };
 
-	ubo.proj = glm::perspective(glm::radians(45.0f), ge::ctx::device.extent.width /
+	ubo.proj = glm::perspective(glm::radians(45.f), ge::ctx::device.extent.width /
 		(float)ge::ctx::device.extent.height, 0.01f, 1000.0f);
 	ubo.proj[1][1] *= -1;
 	ubo.model = glm::mat4(1.f);
